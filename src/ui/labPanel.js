@@ -68,7 +68,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   panel.className = 'panel';
   panel.innerHTML = `
     <h1>U3 · Forces Instrument</h1>
-    <p>LAB: aísla fuerzas, predice y prueba. <strong>P</strong> cambia a PERFORMANCE.</p>
+    <p>LAB: aísla fuerzas, predice y prueba. <strong>Click Izquierdo: Disparar partículas.</strong></p>
   `;
 
   const sim = document.createElement('div');
@@ -81,19 +81,19 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
     maxSpeed: params.maxSpeed.value,
     particleSize: params.particleSize.value,
     radialStrength: params.radialStrength.value,
+    radialRadius: params.radialRadius.value, // NUEVO
     vortexStrength: params.vortexStrength.value,
     dragCoefficient: params.dragCoefficient.value,
     windX: params.wind.value.x,
     windY: params.wind.value.y,
-    // NUEVOS ESTADOS DE ONDA
     waveStrength: params.waveStrength.value,
     waveFrequency: params.waveFrequency.value,
-    waveSpeed: params.waveSpeed.value,
+    waveBPM: params.waveBPM.value, 
     waveRadius: params.waveRadius.value
   };
 
   refreshers.push(rangeRow(sim, 'timeScale', state, 'timeScale', 0, 2, 0.01, (v) => params.timeScale.value = v, () => params.timeScale.value));
-  refreshers.push(rangeRow(sim, 'maxSpeed', state, 'maxSpeed', 0.2, 12, 0.1, (v) => params.maxSpeed.value = v, () => params.maxSpeed.value));
+  refreshers.push(rangeRow(sim, 'maxSpeed', state, 'maxSpeed', 0.2, 30, 0.1, (v) => params.maxSpeed.value = v, () => params.maxSpeed.value)); // Límite subido a 30
   refreshers.push(rangeRow(sim, 'particleSize', state, 'particleSize', 0.005, 0.1, 0.001, (v) => params.particleSize.value = v, () => params.particleSize.value));
 
   const force = document.createElement('div');
@@ -102,7 +102,8 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   panel.append(force);
 
   refreshers.push(checkRow(force, 'Radial', params.radialEnabled.value > 0, (v) => params.radialEnabled.value = v ? 1 : 0, () => params.radialEnabled.value > 0));
-  refreshers.push(rangeRow(force, 'radialStrength', state, 'radialStrength', -8, 8, 0.05, (v) => params.radialStrength.value = v, () => params.radialStrength.value));
+  refreshers.push(rangeRow(force, 'radialStrength', state, 'radialStrength', -15, 15, 0.05, (v) => params.radialStrength.value = v, () => params.radialStrength.value));
+  refreshers.push(rangeRow(force, 'radialRadius (Explosión)', state, 'radialRadius', 1.0, 20.0, 0.5, (v) => params.radialRadius.value = v, () => params.radialRadius.value));
   refreshers.push(checkRow(force, 'Vórtice', params.vortexEnabled.value > 0, (v) => params.vortexEnabled.value = v ? 1 : 0, () => params.vortexEnabled.value > 0));
   refreshers.push(rangeRow(force, 'vortexStrength', state, 'vortexStrength', -8, 8, 0.05, (v) => params.vortexStrength.value = v, () => params.vortexStrength.value));
   refreshers.push(checkRow(force, 'Drag', params.dragEnabled.value > 0, (v) => params.dragEnabled.value = v ? 1 : 0, () => params.dragEnabled.value > 0));
@@ -111,30 +112,29 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   refreshers.push(rangeRow(force, 'wind.x', state, 'windX', -4, 4, 0.05, (v) => params.wind.value.x = v, () => params.wind.value.x));
   refreshers.push(rangeRow(force, 'wind.y', state, 'windY', -4, 4, 0.05, (v) => params.wind.value.y = v, () => params.wind.value.y));
 
-  // NUEVO GRUPO: FUERZA DE ONDAS
   const waveForce = document.createElement('div');
   waveForce.className = 'group';
   waveForce.innerHTML = '<h2>Fuerza de Ondas</h2>';
   panel.append(waveForce);
 
   refreshers.push(checkRow(waveForce, 'Ondas Activadas', params.waveEnabled.value > 0, (v) => params.waveEnabled.value = v ? 1 : 0, () => params.waveEnabled.value > 0));
-  refreshers.push(rangeRow(waveForce, 'Magnitud (Signo)', state, 'waveStrength', -15, 15, 0.5, (v) => params.waveStrength.value = v, () => params.waveStrength.value));
-  refreshers.push(rangeRow(waveForce, 'Frecuencia (Espacio)', state, 'waveFrequency', 0.1, 10, 0.1, (v) => params.waveFrequency.value = v, () => params.waveFrequency.value));
-  refreshers.push(rangeRow(waveForce, 'Velocidad (Tiempo)', state, 'waveSpeed', -20, 20, 0.5, (v) => params.waveSpeed.value = v, () => params.waveSpeed.value));
+  refreshers.push(rangeRow(waveForce, 'Magnitud', state, 'waveStrength', -15, 15, 0.5, (v) => params.waveStrength.value = v, () => params.waveStrength.value));
+  refreshers.push(rangeRow(waveForce, 'Frecuencia Espacial', state, 'waveFrequency', 0.1, 10, 0.1, (v) => params.waveFrequency.value = v, () => params.waveFrequency.value));
+  refreshers.push(rangeRow(waveForce, 'Velocidad (BPM)', state, 'waveBPM', 30, 240, 1, (v) => params.waveBPM.value = v, () => params.waveBPM.value));
   refreshers.push(rangeRow(waveForce, 'Límite (Radio)', state, 'waveRadius', 0.5, 15, 0.5, (v) => params.waveRadius.value = v, () => params.waveRadius.value));
 
   const tests = document.createElement('div');
   tests.className = 'group';
-  tests.innerHTML = '<h2>Pruebas de comportamiento</h2><p>Antes de pulsar una prueba, predice qué debería ocurrir.</p>';
+  tests.innerHTML = '<h2>Pruebas de comportamiento</h2>';
   panel.append(tests);
   
   for (const [id, label] of [
     ['inertia', '1 · Inercia'],
-    ['wind', '2 · Fuerza constante +X'],
+    ['wind', '2 · Viento'],
     ['attract', '3 · Atracción'],
     ['repel', '4 · Repulsión'],
     ['vortex', '5 · Vórtice'],
-    ['waves', '6 · Ondas (Aislado)'] // NUEVO PRESET
+    ['waves', '6 · Ondas (BPM)'] 
   ]) button(tests, label, () => onPreset(id));
 
   const actions = document.createElement('div');
@@ -142,8 +142,8 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   actions.innerHTML = '<h2>Acciones</h2>';
   panel.append(actions);
   button(actions, 'Reset', onReset);
-  button(actions, 'Pausar / continuar', () => onPauseChange());
-  button(actions, 'LAB / PERFORMANCE', () => onModeChange());
+  button(actions, 'Pausar', () => onPauseChange());
+  button(actions, 'Cambiar Modo', () => onModeChange());
 
   document.body.append(panel);
 

@@ -7,7 +7,7 @@ import { createParameters } from './simulation/parameters.js';
 import { createSimulation } from './simulation/createSimulation.js';
 import { createLabPanel } from './ui/labPanel.js';
 
-const PARTICLE_COUNT = 131072; // 2^17. Increase only after measuring performance.
+const PARTICLE_COUNT = 131072; 
 
 async function main() {
   const mount = document.querySelector('#app');
@@ -17,10 +17,8 @@ async function main() {
     throw new Error('Este proyecto requiere WebGPU para ejecutar compute shaders.');
   }
 
-  // Reloj para manejar el tiempo continuo de las ondas
   const clock = new THREE.Clock();
 
-  // THREE.JS MENTAL MODEL: scene + camera + renderer ---------------------
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#050607');
 
@@ -40,7 +38,6 @@ async function main() {
   const params = createParameters();
   const simulation = createSimulation({ renderer, scene, params, count: PARTICLE_COUNT });
 
-  // LAB HELPERS -----------------------------------------------------------
   const attractorHelper = new THREE.Mesh(
     new THREE.SphereGeometry(0.12, 16, 12),
     new THREE.MeshBasicMaterial({ color: '#ffffff' })
@@ -49,8 +46,6 @@ async function main() {
   const axes = new THREE.AxesHelper(1.5);
   scene.add(axes);
 
-  // POINTER -> WORLD POSITION --------------------------------------------
-  // This is a useful camera concept: screen coordinates are not world coords.
   const pointerNdc = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
   const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
@@ -71,12 +66,34 @@ async function main() {
   let panel;
   let savedRadialStrength = params.radialStrength.value;
 
+  // NUEVO: Lógica del "Gatillo" en el evento pointerdown
+  let isShooting = false;
+  addEventListener('pointerdown', (event) => {
+    if (event.button !== 0 || mode !== 'LAB') return; // Solo click izquierdo y en modo LAB
+    if (!isShooting) {
+      isShooting = true;
+      savedRadialStrength = params.radialStrength.value;
+      params.radialEnabled.value = 1;
+      // Inyectamos una fuerza repulsiva masiva e instantánea
+      params.radialStrength.value = -70.0; 
+    }
+  });
+
+  addEventListener('pointerup', () => {
+    if (isShooting) {
+      isShooting = false;
+      // Restauramos la fuerza a su estado anterior
+      params.radialStrength.value = savedRadialStrength;
+      panel?.refresh();
+    }
+  });
+
   const applyPreset = (id) => {
     params.windEnabled.value = 0;
     params.radialEnabled.value = 0;
     params.vortexEnabled.value = 0;
     params.dragEnabled.value = 0;
-    params.waveEnabled.value = 0; // Se asegura de apagar la nueva fuerza por defecto
+    params.waveEnabled.value = 0;
     params.wind.value.set(0, 0, 0);
     params.initialSpeed.value = 0;
 
@@ -99,13 +116,12 @@ async function main() {
       params.dragEnabled.value = 1;
       params.dragCoefficient.value = 0.08;
     } else if (id === 'waves') {
-      // Configuración del nuevo preset de Ondas
       params.waveEnabled.value = 1;
       params.waveStrength.value = 5.0; 
       params.waveFrequency.value = 2.0; 
-      params.waveSpeed.value = 15.0; 
+      params.waveBPM.value = 120.0;
       params.waveRadius.value = 8.0; 
-      params.dragEnabled.value = 1; // Para estabilizar el movimiento
+      params.dragEnabled.value = 1;
       params.dragCoefficient.value = 0.2;
     }
     simulation.reset();
@@ -120,7 +136,7 @@ async function main() {
     attractorHelper.visible = lab;
     orbit.enabled = lab;
     hud.innerHTML = lab
-      ? '<strong>LAB</strong> · P: performance · R: reset · 1–6: pruebas'
+      ? '<strong>LAB</strong> · Click Izq: Disparar · R: reset · 1–6: pruebas'
       : '<strong>PERFORMANCE</strong> · P: lab · espacio: invertir radial · puntero: atractor';
   };
 
@@ -137,8 +153,6 @@ async function main() {
   document.body.append(hud);
   setMode('LAB');
 
-  // BASELINE LIVE INSTRUMENT MAPPING -------------------------------------
-  // Students are expected to redesign this mapping for their own instrument.
   addEventListener('keydown', (event) => {
     if (event.repeat) return;
     if (event.code === 'KeyP') setMode(mode === 'LAB' ? 'PERFORMANCE' : 'LAB');
@@ -148,7 +162,7 @@ async function main() {
     if (event.code === 'Digit3') applyPreset('attract');
     if (event.code === 'Digit4') applyPreset('repel');
     if (event.code === 'Digit5') applyPreset('vortex');
-    if (event.code === 'Digit6') applyPreset('waves'); // Atajo para la prueba de ondas
+    if (event.code === 'Digit6') applyPreset('waves');
 
     if (event.code === 'Space') {
       event.preventDefault();
@@ -170,11 +184,8 @@ async function main() {
 
   simulation.reset();
 
-  // FRAME LOOP ------------------------------------------------------------
   renderer.setAnimationLoop(() => {
-    // Se actualiza el tiempo continuo en cada frame para la animación de la onda
     params.time.value = clock.getElapsedTime();
-
     if (!paused) simulation.stepSimulation();
     orbit.update();
     renderer.render(scene, camera);

@@ -17,11 +17,10 @@ import {
 } from 'three/tsl';
 
 export function createSimulation({ renderer, scene, params, count = 131072 }) {
-  // STATE -----------------------------------------------------------------
+  // 1) ESTADO -------------------------------------------------------------
   const positionBuffer = instancedArray(count, 'vec3');
   const velocityBuffer = instancedArray(count, 'vec3');
 
-  // INITIALIZATION --------------------------------------------------------
   const initParticles = Fn(() => {
     const i = instanceIndex;
     const p = positionBuffer.element(i);
@@ -38,7 +37,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     v.assign(vec3(r4, r5, r6).sub(0.5).mul(params.initialSpeed));
   })().compute(count).setName('Initialize Particles');
 
-  // UPDATE / COMPUTE SHADER ----------------------------------------------
+  // 2) FUERZAS -----------------------------------------------------------
   const updateParticles = Fn(() => {
     const p = positionBuffer.element(instanceIndex);
     const v = velocityBuffer.element(instanceIndex);
@@ -46,32 +45,28 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     const dt = params.dt.mul(params.timeScale);
     const force = vec3(0.0).toVar();
 
-    // 1) CONSTANT / WIND FORCE
     force.addAssign(params.wind.mul(params.windEnabled));
 
-    // Vector compartido para fuerzas que usan el cursor (Attractor y Ondas)
     const toCursor = params.attractor.sub(p);
     const distanceToCursor = max(toCursor.length(), params.softening);
     const dirCursor = toCursor.div(distanceToCursor);
 
-    // 2) RADIAL FORCE
+    // MODIFICADO: Decaimiento lineal (1.0 en el centro, 0.0 en el límite del radio)
+    const falloff = max(params.radialRadius.sub(distanceToCursor), 0.0).div(params.radialRadius);
     const radialForce = dirCursor
       .mul(params.radialStrength)
-      .div(distanceToCursor.pow(2))
+      .mul(falloff)
       .mul(params.radialEnabled);
     force.addAssign(radialForce);
 
-    // 3) VORTEX FORCE
     const zAxis = vec3(0.0, 0.0, 1.0);
     const tangent = zAxis.cross(dirCursor);
     force.addAssign(tangent.mul(params.vortexStrength).mul(params.vortexEnabled));
 
-    // 4) WAVE FORCE (NUEVA FUERZA)
-    // Ecuación: sin(distancia * frecuencia - tiempo * velocidad)
-    const wavePhase = distanceToCursor.mul(params.waveFrequency).sub(params.time.mul(params.waveSpeed));
+    const beatsPerSecond = params.waveBPM.div(60.0);
+    const angularVelocity = beatsPerSecond.mul(Math.PI * 2.0);
+    const wavePhase = distanceToCursor.mul(params.waveFrequency).sub(params.time.mul(angularVelocity));
     const waveOscillation = wavePhase.sin(); 
-    
-    // Máscara de límite: devuelve 1.0 si distanceToCursor < waveRadius, de lo contrario 0.0
     const insideLimit = step(distanceToCursor, params.waveRadius);
 
     const waveForce = dirCursor
@@ -79,13 +74,11 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
       .mul(params.waveStrength)
       .mul(insideLimit)
       .mul(params.waveEnabled);
-    
     force.addAssign(waveForce);
 
-    // 5) LINEAR DRAG: F = -c v
     force.addAssign(v.mul(params.dragCoefficient).mul(params.dragEnabled).mul(-1.0));
 
-    // INTEGRATION ---------------------------------------------------------
+    // 3) INTEGRACIÓN ------------------------------------------------------
     v.addAssign(force.mul(dt));
 
     const speed = v.length();
@@ -95,12 +88,11 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
 
     p.addAssign(v.mul(dt));
 
-    // Periodic boundary conditions
     const half = params.boundsSize.mul(0.5);
     p.assign(mod(p.add(half), params.boundsSize).sub(half));
   })().compute(count).setName('Update Particles');
 
-  // RENDER ---------------------------------------------------------------
+  // 4) RENDER -------------------------------------------------------------
   const material = new THREE.SpriteNodeMaterial({
     blending: THREE.AdditiveBlending,
     depthWrite: false,
@@ -108,14 +100,35 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
   });
 
   material.positionNode = positionBuffer.toAttribute();
+  
+  // Las partículas disparadas irán tan rápido que se estirarán solas visualmente
   material.scaleNode = params.particleSize;
 
   material.colorNode = Fn(() => {
     const speed = velocityBuffer.toAttribute().length();
     const t = speed.div(params.maxSpeed).clamp(0.0, 1.0);
-    const slow = color('#46a6ff');
-    const fast = color('#ffb35a');
-    return vec4(mix(slow, fast, t), 1.0);
+    
+    // MODIFICADO: Ampliación del rango de color (5 etapas)
+    const c1 = color('#0011ff'); // Azul profundo (Lento)
+    const c2 = color('#00ffff'); // Cian
+    const c3 = color('#11ff00'); // Verde
+    const c4 = color('#ff006a'); // Rojo
+    const c5 = color('#ff00dd'); // Rosa (Disparo/Pistola)
+    
+    // Mezcla segmentada
+    const step1 = t.mul(4.0).clamp(0.0, 1.0);
+    const mix1 = mix(c1, c2, step1);
+    
+    const step2 = t.sub(0.25).mul(4.0).clamp(0.0, 1.0);
+    const mix2 = mix(mix1, c3, step2);
+    
+    const step3 = t.sub(0.5).mul(4.0).clamp(0.0, 1.0);
+    const mix3 = mix(mix2, c4, step3);
+    
+    const step4 = t.sub(0.75).mul(4.0).clamp(0.0, 1.0);
+    const finalColor = mix(mix3, c5, step4);
+
+    return vec4(finalColor, 1.0);
   })();
 
   material.opacityNode = step(uv().xy.sub(0.5).length(), 0.5);
