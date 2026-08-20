@@ -68,7 +68,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   panel.className = 'panel';
   panel.innerHTML = `
     <h1>U3 · Forces Instrument</h1>
-    <p>LAB: aísla fuerzas, predice y prueba. <strong>Click Izquierdo: Disparar partículas.</strong></p>
+    <p>LAB: aísla fuerzas, predice y prueba. <strong>Mantén Click Izquierdo para Disparar en línea recta.</strong></p>
   `;
 
   const sim = document.createElement('div');
@@ -81,7 +81,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
     maxSpeed: params.maxSpeed.value,
     particleSize: params.particleSize.value,
     radialStrength: params.radialStrength.value,
-    radialRadius: params.radialRadius.value, // NUEVO
+    radialRadius: params.radialRadius.value, 
     vortexStrength: params.vortexStrength.value,
     dragCoefficient: params.dragCoefficient.value,
     windX: params.wind.value.x,
@@ -89,39 +89,33 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
     waveStrength: params.waveStrength.value,
     waveFrequency: params.waveFrequency.value,
     waveBPM: params.waveBPM.value, 
-    waveRadius: params.waveRadius.value
+    waveRadius: params.waveRadius.value,
+    beamStrength: params.beamStrength.value,
+    beamRadius: params.beamRadius.value
   };
 
   refreshers.push(rangeRow(sim, 'timeScale', state, 'timeScale', 0, 2, 0.01, (v) => params.timeScale.value = v, () => params.timeScale.value));
-  refreshers.push(rangeRow(sim, 'maxSpeed', state, 'maxSpeed', 0.2, 30, 0.1, (v) => params.maxSpeed.value = v, () => params.maxSpeed.value)); // Límite subido a 30
+  refreshers.push(rangeRow(sim, 'maxSpeed', state, 'maxSpeed', 0.2, 40, 0.5, (v) => params.maxSpeed.value = v, () => params.maxSpeed.value));
   refreshers.push(rangeRow(sim, 'particleSize', state, 'particleSize', 0.005, 0.1, 0.001, (v) => params.particleSize.value = v, () => params.particleSize.value));
 
   const force = document.createElement('div');
   force.className = 'group';
   force.innerHTML = '<h2>Fuerzas Regulares</h2>';
   panel.append(force);
-
   refreshers.push(checkRow(force, 'Radial', params.radialEnabled.value > 0, (v) => params.radialEnabled.value = v ? 1 : 0, () => params.radialEnabled.value > 0));
   refreshers.push(rangeRow(force, 'radialStrength', state, 'radialStrength', -15, 15, 0.05, (v) => params.radialStrength.value = v, () => params.radialStrength.value));
-  refreshers.push(rangeRow(force, 'radialRadius (Explosión)', state, 'radialRadius', 1.0, 20.0, 0.5, (v) => params.radialRadius.value = v, () => params.radialRadius.value));
   refreshers.push(checkRow(force, 'Vórtice', params.vortexEnabled.value > 0, (v) => params.vortexEnabled.value = v ? 1 : 0, () => params.vortexEnabled.value > 0));
   refreshers.push(rangeRow(force, 'vortexStrength', state, 'vortexStrength', -8, 8, 0.05, (v) => params.vortexStrength.value = v, () => params.vortexStrength.value));
   refreshers.push(checkRow(force, 'Drag', params.dragEnabled.value > 0, (v) => params.dragEnabled.value = v ? 1 : 0, () => params.dragEnabled.value > 0));
   refreshers.push(rangeRow(force, 'dragCoefficient', state, 'dragCoefficient', 0, 1, 0.01, (v) => params.dragCoefficient.value = v, () => params.dragCoefficient.value));
-  refreshers.push(checkRow(force, 'Viento', params.windEnabled.value > 0, (v) => params.windEnabled.value = v ? 1 : 0, () => params.windEnabled.value > 0));
-  refreshers.push(rangeRow(force, 'wind.x', state, 'windX', -4, 4, 0.05, (v) => params.wind.value.x = v, () => params.wind.value.x));
-  refreshers.push(rangeRow(force, 'wind.y', state, 'windY', -4, 4, 0.05, (v) => params.wind.value.y = v, () => params.wind.value.y));
 
-  const waveForce = document.createElement('div');
-  waveForce.className = 'group';
-  waveForce.innerHTML = '<h2>Fuerza de Ondas</h2>';
-  panel.append(waveForce);
-
-  refreshers.push(checkRow(waveForce, 'Ondas Activadas', params.waveEnabled.value > 0, (v) => params.waveEnabled.value = v ? 1 : 0, () => params.waveEnabled.value > 0));
-  refreshers.push(rangeRow(waveForce, 'Magnitud', state, 'waveStrength', -15, 15, 0.5, (v) => params.waveStrength.value = v, () => params.waveStrength.value));
-  refreshers.push(rangeRow(waveForce, 'Frecuencia Espacial', state, 'waveFrequency', 0.1, 10, 0.1, (v) => params.waveFrequency.value = v, () => params.waveFrequency.value));
-  refreshers.push(rangeRow(waveForce, 'Velocidad (BPM)', state, 'waveBPM', 30, 240, 1, (v) => params.waveBPM.value = v, () => params.waveBPM.value));
-  refreshers.push(rangeRow(waveForce, 'Límite (Radio)', state, 'waveRadius', 0.5, 15, 0.5, (v) => params.waveRadius.value = v, () => params.waveRadius.value));
+  // NUEVO: CAÑÓN DIRECCIONAL
+  const gunForce = document.createElement('div');
+  gunForce.className = 'group';
+  gunForce.innerHTML = '<h2>Cañón (Click Izquierdo)</h2>';
+  panel.append(gunForce);
+  refreshers.push(rangeRow(gunForce, 'Potencia (Fuerza)', state, 'beamStrength', 10, 300, 1, (v) => params.beamStrength.value = v, () => params.beamStrength.value));
+  refreshers.push(rangeRow(gunForce, 'Grosor de la Línea', state, 'beamRadius', 0.1, 3.0, 0.1, (v) => params.beamRadius.value = v, () => params.beamRadius.value));
 
   const tests = document.createElement('div');
   tests.className = 'group';
@@ -143,7 +137,6 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   panel.append(actions);
   button(actions, 'Reset', onReset);
   button(actions, 'Pausar', () => onPauseChange());
-  button(actions, 'Cambiar Modo', () => onModeChange());
 
   document.body.append(panel);
 

@@ -18,7 +18,6 @@ async function main() {
   }
 
   const clock = new THREE.Clock();
-
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#050607');
 
@@ -51,6 +50,7 @@ async function main() {
   const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const hit = new THREE.Vector3();
 
+  // Actualizamos origen y dirección del disparo mientras movemos el ratón
   addEventListener('pointermove', (event) => {
     pointerNdc.x = (event.clientX / innerWidth) * 2 - 1;
     pointerNdc.y = -(event.clientY / innerHeight) * 2 + 1;
@@ -58,34 +58,37 @@ async function main() {
     if (raycaster.ray.intersectPlane(interactionPlane, hit)) {
       params.attractor.value.copy(hit);
       attractorHelper.position.copy(hit);
+      
+      // Si estamos disparando y barriendo la pantalla
+      if (params.beamEnabled.value > 0) {
+        params.beamOrigin.value.copy(hit);
+        if (hit.lengthSq() > 0.001) {
+          params.beamDirection.value.copy(hit).normalize();
+        }
+      }
     }
   });
 
   let paused = false;
   let mode = 'LAB';
   let panel;
-  let savedRadialStrength = params.radialStrength.value;
 
-  // NUEVO: Lógica del "Gatillo" en el evento pointerdown
-  let isShooting = false;
+  // Lógica del "Gatillo" activando la nueva fuerza Lineal
   addEventListener('pointerdown', (event) => {
-    if (event.button !== 0 || mode !== 'LAB') return; // Solo click izquierdo y en modo LAB
-    if (!isShooting) {
-      isShooting = true;
-      savedRadialStrength = params.radialStrength.value;
-      params.radialEnabled.value = 1;
-      // Inyectamos una fuerza repulsiva masiva e instantánea
-      params.radialStrength.value = -70.0; 
+    if (event.button !== 0 || mode !== 'LAB') return; 
+    params.beamEnabled.value = 1;
+    params.beamOrigin.value.copy(hit);
+    
+    // Calcula la dirección del láser disparando hacia afuera desde el centro (0,0)
+    if (hit.lengthSq() > 0.001) {
+      params.beamDirection.value.copy(hit).normalize();
+    } else {
+      params.beamDirection.value.set(0, 1, 0); // Si estás en el puro centro, dispara hacia arriba
     }
   });
 
   addEventListener('pointerup', () => {
-    if (isShooting) {
-      isShooting = false;
-      // Restauramos la fuerza a su estado anterior
-      params.radialStrength.value = savedRadialStrength;
-      panel?.refresh();
-    }
+    params.beamEnabled.value = 0;
   });
 
   const applyPreset = (id) => {
@@ -136,7 +139,7 @@ async function main() {
     attractorHelper.visible = lab;
     orbit.enabled = lab;
     hud.innerHTML = lab
-      ? '<strong>LAB</strong> · Click Izq: Disparar · R: reset · 1–6: pruebas'
+      ? '<strong>LAB</strong> · Mantén Click Izq: Disparar Láser · R: reset'
       : '<strong>PERFORMANCE</strong> · P: lab · espacio: invertir radial · puntero: atractor';
   };
 
@@ -153,6 +156,8 @@ async function main() {
   document.body.append(hud);
   setMode('LAB');
 
+  // Funciones de teclado (el espacio vuelve a invertir la gravedad radial)
+  let savedRadialStrength = params.radialStrength.value;
   addEventListener('keydown', (event) => {
     if (event.repeat) return;
     if (event.code === 'KeyP') setMode(mode === 'LAB' ? 'PERFORMANCE' : 'LAB');
