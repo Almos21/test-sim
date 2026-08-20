@@ -17,6 +17,9 @@ async function main() {
     throw new Error('Este proyecto requiere WebGPU para ejecutar compute shaders.');
   }
 
+  // Reloj para manejar el tiempo continuo de las ondas
+  const clock = new THREE.Clock();
+
   // THREE.JS MENTAL MODEL: scene + camera + renderer ---------------------
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#050607');
@@ -73,6 +76,7 @@ async function main() {
     params.radialEnabled.value = 0;
     params.vortexEnabled.value = 0;
     params.dragEnabled.value = 0;
+    params.waveEnabled.value = 0; // Se asegura de apagar la nueva fuerza por defecto
     params.wind.value.set(0, 0, 0);
     params.initialSpeed.value = 0;
 
@@ -94,6 +98,15 @@ async function main() {
       params.vortexStrength.value = 3.0;
       params.dragEnabled.value = 1;
       params.dragCoefficient.value = 0.08;
+    } else if (id === 'waves') {
+      // Configuración del nuevo preset de Ondas
+      params.waveEnabled.value = 1;
+      params.waveStrength.value = 5.0; 
+      params.waveFrequency.value = 2.0; 
+      params.waveSpeed.value = 15.0; 
+      params.waveRadius.value = 8.0; 
+      params.dragEnabled.value = 1; // Para estabilizar el movimiento
+      params.dragCoefficient.value = 0.2;
     }
     simulation.reset();
     panel?.refresh();
@@ -107,7 +120,7 @@ async function main() {
     attractorHelper.visible = lab;
     orbit.enabled = lab;
     hud.innerHTML = lab
-      ? '<strong>LAB</strong> · P: performance · R: reset · 1–5: pruebas'
+      ? '<strong>LAB</strong> · P: performance · R: reset · 1–6: pruebas'
       : '<strong>PERFORMANCE</strong> · P: lab · espacio: invertir radial · puntero: atractor';
   };
 
@@ -135,6 +148,7 @@ async function main() {
     if (event.code === 'Digit3') applyPreset('attract');
     if (event.code === 'Digit4') applyPreset('repel');
     if (event.code === 'Digit5') applyPreset('vortex');
+    if (event.code === 'Digit6') applyPreset('waves'); // Atajo para la prueba de ondas
 
     if (event.code === 'Space') {
       event.preventDefault();
@@ -158,6 +172,9 @@ async function main() {
 
   // FRAME LOOP ------------------------------------------------------------
   renderer.setAnimationLoop(() => {
+    // Se actualiza el tiempo continuo en cada frame para la animación de la onda
+    params.time.value = clock.getElapsedTime();
+
     if (!paused) simulation.stepSimulation();
     orbit.update();
     renderer.render(scene, camera);

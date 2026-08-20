@@ -84,7 +84,12 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
     vortexStrength: params.vortexStrength.value,
     dragCoefficient: params.dragCoefficient.value,
     windX: params.wind.value.x,
-    windY: params.wind.value.y
+    windY: params.wind.value.y,
+    // NUEVOS ESTADOS DE ONDA
+    waveStrength: params.waveStrength.value,
+    waveFrequency: params.waveFrequency.value,
+    waveSpeed: params.waveSpeed.value,
+    waveRadius: params.waveRadius.value
   };
 
   refreshers.push(rangeRow(sim, 'timeScale', state, 'timeScale', 0, 2, 0.01, (v) => params.timeScale.value = v, () => params.timeScale.value));
@@ -93,7 +98,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
 
   const force = document.createElement('div');
   force.className = 'group';
-  force.innerHTML = '<h2>Fuerzas</h2>';
+  force.innerHTML = '<h2>Fuerzas Regulares</h2>';
   panel.append(force);
 
   refreshers.push(checkRow(force, 'Radial', params.radialEnabled.value > 0, (v) => params.radialEnabled.value = v ? 1 : 0, () => params.radialEnabled.value > 0));
@@ -106,16 +111,30 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   refreshers.push(rangeRow(force, 'wind.x', state, 'windX', -4, 4, 0.05, (v) => params.wind.value.x = v, () => params.wind.value.x));
   refreshers.push(rangeRow(force, 'wind.y', state, 'windY', -4, 4, 0.05, (v) => params.wind.value.y = v, () => params.wind.value.y));
 
+  // NUEVO GRUPO: FUERZA DE ONDAS
+  const waveForce = document.createElement('div');
+  waveForce.className = 'group';
+  waveForce.innerHTML = '<h2>Fuerza de Ondas</h2>';
+  panel.append(waveForce);
+
+  refreshers.push(checkRow(waveForce, 'Ondas Activadas', params.waveEnabled.value > 0, (v) => params.waveEnabled.value = v ? 1 : 0, () => params.waveEnabled.value > 0));
+  refreshers.push(rangeRow(waveForce, 'Magnitud (Signo)', state, 'waveStrength', -15, 15, 0.5, (v) => params.waveStrength.value = v, () => params.waveStrength.value));
+  refreshers.push(rangeRow(waveForce, 'Frecuencia (Espacio)', state, 'waveFrequency', 0.1, 10, 0.1, (v) => params.waveFrequency.value = v, () => params.waveFrequency.value));
+  refreshers.push(rangeRow(waveForce, 'Velocidad (Tiempo)', state, 'waveSpeed', -20, 20, 0.5, (v) => params.waveSpeed.value = v, () => params.waveSpeed.value));
+  refreshers.push(rangeRow(waveForce, 'Límite (Radio)', state, 'waveRadius', 0.5, 15, 0.5, (v) => params.waveRadius.value = v, () => params.waveRadius.value));
+
   const tests = document.createElement('div');
   tests.className = 'group';
   tests.innerHTML = '<h2>Pruebas de comportamiento</h2><p>Antes de pulsar una prueba, predice qué debería ocurrir.</p>';
   panel.append(tests);
+  
   for (const [id, label] of [
     ['inertia', '1 · Inercia'],
     ['wind', '2 · Fuerza constante +X'],
     ['attract', '3 · Atracción'],
     ['repel', '4 · Repulsión'],
-    ['vortex', '5 · Vórtice']
+    ['vortex', '5 · Vórtice'],
+    ['waves', '6 · Ondas (Aislado)'] // NUEVO PRESET
   ]) button(tests, label, () => onPreset(id));
 
   const actions = document.createElement('div');
