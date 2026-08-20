@@ -26,23 +26,24 @@ export function createParameters() {
     dragEnabled: uniform(1.0),
     dragCoefficient: uniform(0.12),
 
-    // ONDAS SINCRONIZADAS A BPM
+    // ONDAS BPM
     waveEnabled: uniform(0.0),
     waveStrength: uniform(5.0),
     waveFrequency: uniform(2.0),
     waveBPM: uniform(120.0), 
     waveRadius: uniform(4.0),
 
-    // RAYO LÁSER / CAÑÓN EN LÍNEA RECTA
+    // CAÑÓN / RAYO (Separado interruptor y gatillo)
     beamEnabled: uniform(0.0),
+    beamFiring: uniform(0.0), // Nuevo estado para el clic
     beamOrigin: uniform(new THREE.Vector3(0, 0, 0)),
     beamDirection: uniform(new THREE.Vector3(0, 1, 0)),
     beamStrength: uniform(120.0),
     beamRadius: uniform(0.3),
 
-    // NUEVO: FUERZA DE RUIDO GENERAL
+    // RUIDO DE ESTÁTICA / TEMBLOR
     noiseEnabled: uniform(0.0),
     noiseStrength: uniform(1.5),
-    noiseFrequency: uniform(0.8)
+    noiseFrequency: uniform(1.5)
   };
 }

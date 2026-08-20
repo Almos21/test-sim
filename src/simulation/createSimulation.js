@@ -41,6 +41,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
   const updateParticles = Fn(() => {
     const p = positionBuffer.element(instanceIndex);
     const v = velocityBuffer.element(instanceIndex);
+    const i = instanceIndex;
 
     const dt = params.dt.mul(params.timeScale);
     const force = vec3(0.0).toVar();
@@ -77,7 +78,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
       .mul(params.waveEnabled);
     force.addAssign(waveForce);
 
-    // -- Rayo / Cañón en Línea Recta
+    // -- Rayo / Cañón (Solo aplica si beamEnabled Y beamFiring están activos)
     const toParticleBeam = p.sub(params.beamOrigin);
     const projection = toParticleBeam.dot(params.beamDirection); 
     const closestPointOnLine = params.beamDirection.mul(projection);
@@ -91,15 +92,16 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
       .mul(params.beamStrength)
       .mul(beamFalloff)
       .mul(inFront)
-      .mul(params.beamEnabled);
+      .mul(params.beamEnabled)
+      .mul(params.beamFiring); // Gatillo exclusivo por clic
     force.addAssign(beamForce);
 
-    // -- NUEVO: RUIDO GENERAL (Campo vectorial orgánico basado en trigonométricas y tiempo)
-    const noiseCoord = p.mul(params.noiseFrequency).add(vec3(params.time.mul(0.4)));
+    // -- NUEVO: RUIDO DE ESTÁTICA / TEMBLOR (Alta frecuencia por partícula)
+    const noiseFreq = params.noiseFrequency.mul(50.0);
     const noiseForce = vec3(
-      noiseCoord.y.sin().sub(noiseCoord.z.cos()),
-      noiseCoord.z.sin().sub(noiseCoord.x.cos()),
-      noiseCoord.x.sin().sub(noiseCoord.y.cos())
+      (i.add(params.time.mul(noiseFreq))).sin(),
+      (i.add(params.time.mul(noiseFreq.mul(1.3))).cos()),
+      (i.add(params.time.mul(noiseFreq.mul(0.7))).sin())
     ).mul(params.noiseStrength).mul(params.noiseEnabled);
     force.addAssign(noiseForce);
 
@@ -120,7 +122,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     p.assign(mod(p.add(half), params.boundsSize).sub(half));
   })().compute(count).setName('Update Particles');
 
-  // 4) RENDER (Rango de color extendido de 5 etapas) ---------------------
+  // 4) RENDER (Rango de color de 5 etapas) -------------------------------
   const material = new THREE.SpriteNodeMaterial({
     blending: THREE.AdditiveBlending,
     depthWrite: false,
@@ -134,21 +136,18 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     const speed = velocityBuffer.toAttribute().length();
     const t = speed.div(params.maxSpeed).clamp(0.0, 1.0);
     
-    const c1 = color('#0011ff'); // Azul (Reposo)
-    const c2 = color('#00ffff'); // Cian 
-    const c3 = color('#11ff00'); // Verde 
-    const c4 = color('#ffcc00'); // Amarillo 
-    const c5 = color('#ff0000'); // Rojo (Disparo violento)
+    const c1 = color('#0011ff'); // Azul
+    const c2 = color('#00ffff'); // Cian
+    const c3 = color('#11ff00'); // Verde
+    const c4 = color('#ffcc00'); // Amarillo
+    const c5 = color('#ff0000'); // Rojo
     
     const step1 = t.mul(4.0).clamp(0.0, 1.0);
     const mix1 = mix(c1, c2, step1);
-    
     const step2 = t.sub(0.25).mul(4.0).clamp(0.0, 1.0);
     const mix2 = mix(mix1, c3, step2);
-    
     const step3 = t.sub(0.5).mul(4.0).clamp(0.0, 1.0);
     const mix3 = mix(mix2, c4, step3);
-    
     const step4 = t.sub(0.75).mul(4.0).clamp(0.0, 1.0);
     const finalColor = mix(mix3, c5, step4);
 

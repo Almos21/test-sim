@@ -68,7 +68,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   panel.className = 'panel';
   panel.innerHTML = `
     <h1>U3 · Forces Instrument</h1>
-    <p>LAB: aísla fuerzas, predice y prueba. <strong>Mantén Click Izq para disparar en línea recta.</strong></p>
+    <p>LAB: aísla fuerzas, predice y prueba. <strong>Mantén Clic Izquierdo para disparar el láser.</strong></p>
   `;
 
   const sim = document.createElement('div');
@@ -127,23 +127,23 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   refreshers.push(rangeRow(waveForce, 'Velocidad (BPM)', state, 'waveBPM', 30, 240, 1, (v) => params.waveBPM.value = v, () => params.waveBPM.value));
   refreshers.push(rangeRow(waveForce, 'Límite (Radio)', state, 'waveRadius', 0.5, 15, 0.5, (v) => params.waveRadius.value = v, () => params.waveRadius.value));
 
-  // CAÑÓN (Línea recta) con toggle independiente
+  // CAÑÓN
   const gunForce = document.createElement('div');
   gunForce.className = 'group';
-  gunForce.innerHTML = '<h2>Cañón / Rayo (Click Izquierdo)</h2>';
+  gunForce.innerHTML = '<h2>Cañón / Rayo (Clic Izquierdo)</h2>';
   panel.append(gunForce);
   refreshers.push(checkRow(gunForce, 'Cañón Activado', params.beamEnabled.value > 0, (v) => params.beamEnabled.value = v ? 1 : 0, () => params.beamEnabled.value > 0));
   refreshers.push(rangeRow(gunForce, 'Potencia (Fuerza)', state, 'beamStrength', 10, 300, 1, (v) => params.beamStrength.value = v, () => params.beamStrength.value));
   refreshers.push(rangeRow(gunForce, 'Grosor de la Línea', state, 'beamRadius', 0.1, 3.0, 0.1, (v) => params.beamRadius.value = v, () => params.beamRadius.value));
 
-  // NUEVO: RUIDO GENERAL con toggle y sliders
+  // RUIDO DE ESTÁTICA / TEMBLOR
   const noiseGroup = document.createElement('div');
   noiseGroup.className = 'group';
-  noiseGroup.innerHTML = '<h2>Ruido General</h2>';
+  noiseGroup.innerHTML = '<h2>Ruido / Estática (Temblor)</h2>';
   panel.append(noiseGroup);
   refreshers.push(checkRow(noiseGroup, 'Ruido Activado', params.noiseEnabled.value > 0, (v) => params.noiseEnabled.value = v ? 1 : 0, () => params.noiseEnabled.value > 0));
-  refreshers.push(rangeRow(noiseGroup, 'Intensidad de Ruido', state, 'noiseStrength', 0.1, 10, 0.1, (v) => params.noiseStrength.value = v, () => params.noiseStrength.value));
-  refreshers.push(rangeRow(noiseGroup, 'Frecuencia de Ruido', state, 'noiseFrequency', 0.1, 5, 0.05, (v) => params.noiseFrequency.value = v, () => params.noiseFrequency.value));
+  refreshers.push(rangeRow(noiseGroup, 'Intensidad (Magnitud)', state, 'noiseStrength', 0.1, 10, 0.1, (v) => params.noiseStrength.value = v, () => params.noiseStrength.value));
+  refreshers.push(rangeRow(noiseGroup, 'Frecuencia (Velocidad)', state, 'noiseFrequency', 0.1, 5, 0.05, (v) => params.noiseFrequency.value = v, () => params.noiseFrequency.value));
 
   const tests = document.createElement('div');
   tests.className = 'group';
@@ -158,7 +158,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
     ['vortex', '5 · Vórtice'],
     ['waves', '6 · Ondas (BPM)'],
     ['beam', '7 · Rayo / Cañón'],
-    ['noise', '8 · Ruido General']
+    ['noise', '8 · Ruido / Estática']
   ]) button(tests, label, () => onPreset(id));
 
   const actions = document.createElement('div');

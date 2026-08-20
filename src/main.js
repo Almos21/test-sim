@@ -50,6 +50,7 @@ async function main() {
   const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const hit = new THREE.Vector3();
 
+  // El movimiento del mouse actualiza la posición del cañón pero NO dispara por sí solo
   addEventListener('pointermove', (event) => {
     pointerNdc.x = (event.clientX / innerWidth) * 2 - 1;
     pointerNdc.y = -(event.clientY / innerHeight) * 2 + 1;
@@ -58,11 +59,9 @@ async function main() {
       params.attractor.value.copy(hit);
       attractorHelper.position.copy(hit);
       
-      if (params.beamEnabled.value > 0) {
-        params.beamOrigin.value.copy(hit);
-        if (hit.lengthSq() > 0.001) {
-          params.beamDirection.value.copy(hit).normalize();
-        }
+      params.beamOrigin.value.copy(hit);
+      if (hit.lengthSq() > 0.001) {
+        params.beamDirection.value.copy(hit).normalize();
       }
     }
   });
@@ -71,33 +70,26 @@ async function main() {
   let mode = 'LAB';
   let panel;
 
-  // Lógica del Gatillo para disparar el láser en línea recta (siempre y cuando beamEnabled esté activo)
-  let isPointerDown = false;
+  // Gatillo exclusivo: el disparo solo se activa al presionar el clic izquierdo
   addEventListener('pointerdown', (event) => {
     if (event.button !== 0 || mode !== 'LAB') return; 
-    isPointerDown = true;
     if (params.beamEnabled.value > 0) {
-      params.beamOrigin.value.copy(hit);
-      if (hit.lengthSq() > 0.001) {
-        params.beamDirection.value.copy(hit).normalize();
-      } else {
-        params.beamDirection.value.set(0, 1, 0);
-      }
+      params.beamFiring.value = 1;
     }
   });
 
   addEventListener('pointerup', () => {
-    isPointerDown = false;
+    params.beamFiring.value = 0;
   });
 
   const applyPreset = (id) => {
-    // Desactivar todas las fuerzas para aislamiento completo
     params.windEnabled.value = 0;
     params.radialEnabled.value = 0;
     params.vortexEnabled.value = 0;
     params.dragEnabled.value = 0;
     params.waveEnabled.value = 0;
     params.beamEnabled.value = 0;
+    params.beamFiring.value = 0;
     params.noiseEnabled.value = 0;
     params.wind.value.set(0, 0, 0);
     params.initialSpeed.value = 0;
@@ -136,7 +128,7 @@ async function main() {
     } else if (id === 'noise') {
       params.noiseEnabled.value = 1;
       params.noiseStrength.value = 2.5;
-      params.noiseFrequency.value = 0.8;
+      params.noiseFrequency.value = 1.5;
       params.dragEnabled.value = 1;
       params.dragCoefficient.value = 0.1;
     }
@@ -152,7 +144,7 @@ async function main() {
     attractorHelper.visible = lab;
     orbit.enabled = lab;
     hud.innerHTML = lab
-      ? '<strong>LAB</strong> · Click Izq: Disparar Láser · R: reset · 1–8: pruebas aisladas'
+      ? '<strong>LAB</strong> · Mantén Clic Izq: Disparar Láser · R: reset · 1–8: pruebas aisladas'
       : '<strong>PERFORMANCE</strong> · P: lab · espacio: invertir radial · puntero: atractor';
   };
 
