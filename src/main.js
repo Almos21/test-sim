@@ -71,28 +71,34 @@ async function main() {
   let mode = 'LAB';
   let panel;
 
-  // Lógica del Gatillo para disparar el láser en línea recta
+  // Lógica del Gatillo para disparar el láser en línea recta (siempre y cuando beamEnabled esté activo)
+  let isPointerDown = false;
   addEventListener('pointerdown', (event) => {
     if (event.button !== 0 || mode !== 'LAB') return; 
-    params.beamEnabled.value = 1;
-    params.beamOrigin.value.copy(hit);
-    if (hit.lengthSq() > 0.001) {
-      params.beamDirection.value.copy(hit).normalize();
-    } else {
-      params.beamDirection.value.set(0, 1, 0);
+    isPointerDown = true;
+    if (params.beamEnabled.value > 0) {
+      params.beamOrigin.value.copy(hit);
+      if (hit.lengthSq() > 0.001) {
+        params.beamDirection.value.copy(hit).normalize();
+      } else {
+        params.beamDirection.value.set(0, 1, 0);
+      }
     }
   });
 
   addEventListener('pointerup', () => {
-    params.beamEnabled.value = 0;
+    isPointerDown = false;
   });
 
   const applyPreset = (id) => {
+    // Desactivar todas las fuerzas para aislamiento completo
     params.windEnabled.value = 0;
     params.radialEnabled.value = 0;
     params.vortexEnabled.value = 0;
     params.dragEnabled.value = 0;
     params.waveEnabled.value = 0;
+    params.beamEnabled.value = 0;
+    params.noiseEnabled.value = 0;
     params.wind.value.set(0, 0, 0);
     params.initialSpeed.value = 0;
 
@@ -122,6 +128,17 @@ async function main() {
       params.waveRadius.value = 8.0; 
       params.dragEnabled.value = 1;
       params.dragCoefficient.value = 0.2;
+    } else if (id === 'beam') {
+      params.beamEnabled.value = 1;
+      params.beamStrength.value = 150.0;
+      params.dragEnabled.value = 1;
+      params.dragCoefficient.value = 0.15;
+    } else if (id === 'noise') {
+      params.noiseEnabled.value = 1;
+      params.noiseStrength.value = 2.5;
+      params.noiseFrequency.value = 0.8;
+      params.dragEnabled.value = 1;
+      params.dragCoefficient.value = 0.1;
     }
     simulation.reset();
     panel?.refresh();
@@ -135,7 +152,7 @@ async function main() {
     attractorHelper.visible = lab;
     orbit.enabled = lab;
     hud.innerHTML = lab
-      ? '<strong>LAB</strong> · Click Izq: Disparar Láser · R: reset · 1–6: pruebas'
+      ? '<strong>LAB</strong> · Click Izq: Disparar Láser · R: reset · 1–8: pruebas aisladas'
       : '<strong>PERFORMANCE</strong> · P: lab · espacio: invertir radial · puntero: atractor';
   };
 
@@ -163,6 +180,8 @@ async function main() {
     if (event.code === 'Digit4') applyPreset('repel');
     if (event.code === 'Digit5') applyPreset('vortex');
     if (event.code === 'Digit6') applyPreset('waves');
+    if (event.code === 'Digit7') applyPreset('beam');
+    if (event.code === 'Digit8') applyPreset('noise');
 
     if (event.code === 'Space') {
       event.preventDefault();

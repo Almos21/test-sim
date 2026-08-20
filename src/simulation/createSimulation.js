@@ -48,7 +48,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     // -- Viento
     force.addAssign(params.wind.mul(params.windEnabled));
 
-    // -- Radial con decaimiento lineal
+    // -- Radial
     const toCursor = params.attractor.sub(p);
     const distanceToCursor = max(toCursor.length(), params.softening);
     const dirCursor = toCursor.div(distanceToCursor);
@@ -64,7 +64,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     const tangent = zAxis.cross(dirCursor);
     force.addAssign(tangent.mul(params.vortexStrength).mul(params.vortexEnabled));
 
-    // -- Ondas BPM (Conservado)
+    // -- Ondas BPM
     const beatsPerSecond = params.waveBPM.div(60.0);
     const angularVelocity = beatsPerSecond.mul(Math.PI * 2.0);
     const wavePhase = distanceToCursor.mul(params.waveFrequency).sub(params.time.mul(angularVelocity));
@@ -77,7 +77,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
       .mul(params.waveEnabled);
     force.addAssign(waveForce);
 
-    // -- Rayo Láser / Pistola en Línea Recta (Nuevo)
+    // -- Rayo / Cañón en Línea Recta
     const toParticleBeam = p.sub(params.beamOrigin);
     const projection = toParticleBeam.dot(params.beamDirection); 
     const closestPointOnLine = params.beamDirection.mul(projection);
@@ -93,6 +93,15 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
       .mul(inFront)
       .mul(params.beamEnabled);
     force.addAssign(beamForce);
+
+    // -- NUEVO: RUIDO GENERAL (Campo vectorial orgánico basado en trigonométricas y tiempo)
+    const noiseCoord = p.mul(params.noiseFrequency).add(vec3(params.time.mul(0.4)));
+    const noiseForce = vec3(
+      noiseCoord.y.sin().sub(noiseCoord.z.cos()),
+      noiseCoord.z.sin().sub(noiseCoord.x.cos()),
+      noiseCoord.x.sin().sub(noiseCoord.y.cos())
+    ).mul(params.noiseStrength).mul(params.noiseEnabled);
+    force.addAssign(noiseForce);
 
     // -- Drag / Fricción
     force.addAssign(v.mul(params.dragCoefficient).mul(params.dragEnabled).mul(-1.0));
