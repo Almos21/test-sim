@@ -68,7 +68,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   panel.className = 'panel';
   panel.innerHTML = `
     <h1>U3 · Forces Instrument</h1>
-    <p>LAB: aísla fuerzas, predice y prueba. <strong>Mantén Click Izquierdo para Disparar en línea recta.</strong></p>
+    <p>LAB: aísla fuerzas, predice y prueba. <strong>Mantén Click Izq para disparar en línea recta.</strong></p>
   `;
 
   const sim = document.createElement('div');
@@ -86,10 +86,12 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
     dragCoefficient: params.dragCoefficient.value,
     windX: params.wind.value.x,
     windY: params.wind.value.y,
+    // ONDAS BPM
     waveStrength: params.waveStrength.value,
     waveFrequency: params.waveFrequency.value,
     waveBPM: params.waveBPM.value, 
     waveRadius: params.waveRadius.value,
+    // CAÑÓN
     beamStrength: params.beamStrength.value,
     beamRadius: params.beamRadius.value
   };
@@ -102,14 +104,30 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   force.className = 'group';
   force.innerHTML = '<h2>Fuerzas Regulares</h2>';
   panel.append(force);
+
   refreshers.push(checkRow(force, 'Radial', params.radialEnabled.value > 0, (v) => params.radialEnabled.value = v ? 1 : 0, () => params.radialEnabled.value > 0));
   refreshers.push(rangeRow(force, 'radialStrength', state, 'radialStrength', -15, 15, 0.05, (v) => params.radialStrength.value = v, () => params.radialStrength.value));
   refreshers.push(checkRow(force, 'Vórtice', params.vortexEnabled.value > 0, (v) => params.vortexEnabled.value = v ? 1 : 0, () => params.vortexEnabled.value > 0));
   refreshers.push(rangeRow(force, 'vortexStrength', state, 'vortexStrength', -8, 8, 0.05, (v) => params.vortexStrength.value = v, () => params.vortexStrength.value));
   refreshers.push(checkRow(force, 'Drag', params.dragEnabled.value > 0, (v) => params.dragEnabled.value = v ? 1 : 0, () => params.dragEnabled.value > 0));
   refreshers.push(rangeRow(force, 'dragCoefficient', state, 'dragCoefficient', 0, 1, 0.01, (v) => params.dragCoefficient.value = v, () => params.dragCoefficient.value));
+  refreshers.push(checkRow(force, 'Viento', params.windEnabled.value > 0, (v) => params.windEnabled.value = v ? 1 : 0, () => params.windEnabled.value > 0));
+  refreshers.push(rangeRow(force, 'wind.x', state, 'windX', -4, 4, 0.05, (v) => params.wind.value.x = v, () => params.wind.value.x));
+  refreshers.push(rangeRow(force, 'wind.y', state, 'windY', -4, 4, 0.05, (v) => params.wind.value.y = v, () => params.wind.value.y));
 
-  // NUEVO: CAÑÓN DIRECCIONAL
+  // GRUPO ONDAS BPM (Conservado íntegramente)
+  const waveForce = document.createElement('div');
+  waveForce.className = 'group';
+  waveForce.innerHTML = '<h2>Fuerza de Ondas (BPM)</h2>';
+  panel.append(waveForce);
+
+  refreshers.push(checkRow(waveForce, 'Ondas Activadas', params.waveEnabled.value > 0, (v) => params.waveEnabled.value = v ? 1 : 0, () => params.waveEnabled.value > 0));
+  refreshers.push(rangeRow(waveForce, 'Magnitud', state, 'waveStrength', -15, 15, 0.5, (v) => params.waveStrength.value = v, () => params.waveStrength.value));
+  refreshers.push(rangeRow(waveForce, 'Frecuencia Espacial', state, 'waveFrequency', 0.1, 10, 0.1, (v) => params.waveFrequency.value = v, () => params.waveFrequency.value));
+  refreshers.push(rangeRow(waveForce, 'Velocidad (BPM)', state, 'waveBPM', 30, 240, 1, (v) => params.waveBPM.value = v, () => params.waveBPM.value));
+  refreshers.push(rangeRow(waveForce, 'Límite (Radio)', state, 'waveRadius', 0.5, 15, 0.5, (v) => params.waveRadius.value = v, () => params.waveRadius.value));
+
+  // GRUPO CAÑÓN (Línea recta)
   const gunForce = document.createElement('div');
   gunForce.className = 'group';
   gunForce.innerHTML = '<h2>Cañón (Click Izquierdo)</h2>';
@@ -137,6 +155,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   panel.append(actions);
   button(actions, 'Reset', onReset);
   button(actions, 'Pausar', () => onPauseChange());
+  button(actions, 'Cambiar Modo', () => onModeChange());
 
   document.body.append(panel);
 

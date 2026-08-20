@@ -7,7 +7,7 @@ export function createParameters() {
     timeScale: uniform(1.0),
     time: uniform(0.0), 
     initialSpeed: uniform(0.35),
-    maxSpeed: uniform(30.0), // Límite alto para que el disparo fluya rápido y se vea rojo
+    maxSpeed: uniform(30.0),
     boundsSize: uniform(10.0),
     particleSize: uniform(0.035),
 
@@ -26,17 +26,18 @@ export function createParameters() {
     dragEnabled: uniform(1.0),
     dragCoefficient: uniform(0.12),
 
+    // ONDAS SINCRONIZADAS A BPM (Conservadas íntegras)
     waveEnabled: uniform(0.0),
     waveStrength: uniform(5.0),
     waveFrequency: uniform(2.0),
     waveBPM: uniform(120.0), 
     waveRadius: uniform(4.0),
 
-    // NUEVO: FUERZA DE RAYO (PISTOLA EN LÍNEA RECTA)
+    // NUEVO: FUERZA DE RAYO EN LÍNEA RECTA (PISTOLA)
     beamEnabled: uniform(0.0),
     beamOrigin: uniform(new THREE.Vector3(0, 0, 0)),
     beamDirection: uniform(new THREE.Vector3(0, 1, 0)),
-    beamStrength: uniform(120.0), // Fuerza masiva para salir disparadas
-    beamRadius: uniform(0.3)      // Ancho de la línea del láser
+    beamStrength: uniform(120.0),
+    beamRadius: uniform(0.3)
   };
 }

@@ -50,7 +50,6 @@ async function main() {
   const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const hit = new THREE.Vector3();
 
-  // Actualizamos origen y dirección del disparo mientras movemos el ratón
   addEventListener('pointermove', (event) => {
     pointerNdc.x = (event.clientX / innerWidth) * 2 - 1;
     pointerNdc.y = -(event.clientY / innerHeight) * 2 + 1;
@@ -59,7 +58,6 @@ async function main() {
       params.attractor.value.copy(hit);
       attractorHelper.position.copy(hit);
       
-      // Si estamos disparando y barriendo la pantalla
       if (params.beamEnabled.value > 0) {
         params.beamOrigin.value.copy(hit);
         if (hit.lengthSq() > 0.001) {
@@ -73,17 +71,15 @@ async function main() {
   let mode = 'LAB';
   let panel;
 
-  // Lógica del "Gatillo" activando la nueva fuerza Lineal
+  // Lógica del Gatillo para disparar el láser en línea recta
   addEventListener('pointerdown', (event) => {
     if (event.button !== 0 || mode !== 'LAB') return; 
     params.beamEnabled.value = 1;
     params.beamOrigin.value.copy(hit);
-    
-    // Calcula la dirección del láser disparando hacia afuera desde el centro (0,0)
     if (hit.lengthSq() > 0.001) {
       params.beamDirection.value.copy(hit).normalize();
     } else {
-      params.beamDirection.value.set(0, 1, 0); // Si estás en el puro centro, dispara hacia arriba
+      params.beamDirection.value.set(0, 1, 0);
     }
   });
 
@@ -139,7 +135,7 @@ async function main() {
     attractorHelper.visible = lab;
     orbit.enabled = lab;
     hud.innerHTML = lab
-      ? '<strong>LAB</strong> · Mantén Click Izq: Disparar Láser · R: reset'
+      ? '<strong>LAB</strong> · Click Izq: Disparar Láser · R: reset · 1–6: pruebas'
       : '<strong>PERFORMANCE</strong> · P: lab · espacio: invertir radial · puntero: atractor';
   };
 
@@ -156,7 +152,6 @@ async function main() {
   document.body.append(hud);
   setMode('LAB');
 
-  // Funciones de teclado (el espacio vuelve a invertir la gravedad radial)
   let savedRadialStrength = params.radialStrength.value;
   addEventListener('keydown', (event) => {
     if (event.repeat) return;

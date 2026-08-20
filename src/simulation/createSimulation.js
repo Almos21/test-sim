@@ -48,7 +48,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     // -- Viento
     force.addAssign(params.wind.mul(params.windEnabled));
 
-    // -- Radial
+    // -- Radial con decaimiento lineal
     const toCursor = params.attractor.sub(p);
     const distanceToCursor = max(toCursor.length(), params.softening);
     const dirCursor = toCursor.div(distanceToCursor);
@@ -64,7 +64,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     const tangent = zAxis.cross(dirCursor);
     force.addAssign(tangent.mul(params.vortexStrength).mul(params.vortexEnabled));
 
-    // -- Ondas BPM
+    // -- Ondas BPM (Conservado)
     const beatsPerSecond = params.waveBPM.div(60.0);
     const angularVelocity = beatsPerSecond.mul(Math.PI * 2.0);
     const wavePhase = distanceToCursor.mul(params.waveFrequency).sub(params.time.mul(angularVelocity));
@@ -77,28 +77,24 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
       .mul(params.waveEnabled);
     force.addAssign(waveForce);
 
-    // -- NUEVO: RAYO LÁSER DIRECCIONAL (PISTOLA)
+    // -- Rayo Láser / Pistola en Línea Recta (Nuevo)
     const toParticleBeam = p.sub(params.beamOrigin);
-    // Calculamos qué tan "adelante" del origen del disparo está la partícula
     const projection = toParticleBeam.dot(params.beamDirection); 
-    
-    // Distancia perpendicular (para saber si está dentro del ancho de la línea)
     const closestPointOnLine = params.beamDirection.mul(projection);
     const orthoVector = toParticleBeam.sub(closestPointOnLine);
     const distanceToBeam = orthoVector.length();
 
-    // Solo afecta si está "delante" de la pistola (projection > 0) y dentro del radio de la línea
     const inFront = step(0.0, projection);
     const beamFalloff = max(params.beamRadius.sub(distanceToBeam), 0.0).div(params.beamRadius);
     
     const beamForce = params.beamDirection
       .mul(params.beamStrength)
-      .mul(beamFalloff) // Más fuerte en el centro de la línea
+      .mul(beamFalloff)
       .mul(inFront)
       .mul(params.beamEnabled);
     force.addAssign(beamForce);
 
-    // -- Drag / Fricción (esencial para que la línea se disuelva y no viaje para siempre)
+    // -- Drag / Fricción
     force.addAssign(v.mul(params.dragCoefficient).mul(params.dragEnabled).mul(-1.0));
 
     // 3) INTEGRACIÓN ------------------------------------------------------
@@ -115,7 +111,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     p.assign(mod(p.add(half), params.boundsSize).sub(half));
   })().compute(count).setName('Update Particles');
 
-  // 4) RENDER -------------------------------------------------------------
+  // 4) RENDER (Rango de color extendido de 5 etapas) ---------------------
   const material = new THREE.SpriteNodeMaterial({
     blending: THREE.AdditiveBlending,
     depthWrite: false,
@@ -127,17 +123,14 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
 
   material.colorNode = Fn(() => {
     const speed = velocityBuffer.toAttribute().length();
-    // Mapeo normalizado (0.0 a 1.0) basado en la velocidad máxima
     const t = speed.div(params.maxSpeed).clamp(0.0, 1.0);
     
-    // Rango de Color Extendido (5 etapas)
-    const c1 = color('#0011ff'); // Azul profundo (Lento)
-    const c2 = color('#00ffff'); // Cian
-    const c3 = color('#11ff00'); // Verde
-    const c4 = color('#ff0000'); // Rojo
-    const c5 = color('#ff00ff'); // Rosa (Disparo/Pistola)
+    const c1 = color('#0011ff'); // Azul (Reposo)
+    const c2 = color('#00ffff'); // Cian 
+    const c3 = color('#11ff00'); // Verde 
+    const c4 = color('#ffcc00'); // Amarillo 
+    const c5 = color('#ff0000'); // Rojo (Disparo violento)
     
-    // Interpolación matemática en bloques de 25%
     const step1 = t.mul(4.0).clamp(0.0, 1.0);
     const mix1 = mix(c1, c2, step1);
     
