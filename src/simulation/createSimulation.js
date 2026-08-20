@@ -41,7 +41,7 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
   const updateParticles = Fn(() => {
     const p = positionBuffer.element(instanceIndex);
     const v = velocityBuffer.element(instanceIndex);
-    const i = instanceIndex;
+    const iFloat = instanceIndex.toFloat(); // Conversión segura para GPU
 
     const dt = params.dt.mul(params.timeScale);
     const force = vec3(0.0).toVar();
@@ -93,15 +93,16 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
       .mul(beamFalloff)
       .mul(inFront)
       .mul(params.beamEnabled)
-      .mul(params.beamFiring); // Gatillo exclusivo por clic
+      .mul(params.beamFiring);
     force.addAssign(beamForce);
 
-    // -- NUEVO: RUIDO DE ESTÁTICA / TEMBLOR (Alta frecuencia por partícula)
+    // -- RUIDO DE ESTÁTICA / TEMBLOR (Tipado correcto con iFloat)
     const noiseFreq = params.noiseFrequency.mul(50.0);
+    const noisePhase = iFloat.add(params.time.mul(noiseFreq));
     const noiseForce = vec3(
-      (i.add(params.time.mul(noiseFreq))).sin(),
-      (i.add(params.time.mul(noiseFreq.mul(1.3))).cos()),
-      (i.add(params.time.mul(noiseFreq.mul(0.7))).sin())
+      noisePhase.sin(),
+      noisePhase.mul(1.3).cos(),
+      noisePhase.mul(0.7).sin()
     ).mul(params.noiseStrength).mul(params.noiseEnabled);
     force.addAssign(noiseForce);
 
