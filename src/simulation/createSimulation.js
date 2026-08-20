@@ -112,8 +112,8 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     const c1 = color('#0011ff'); // Azul profundo (Lento)
     const c2 = color('#00ffff'); // Cian
     const c3 = color('#11ff00'); // Verde
-    const c4 = color('#ffcc00'); // Amarillo
-    const c5 = color('#ff0000'); // Rojo intenso (Disparo/Pistola)
+    const c4 = color('#ff0000'); // Rojo
+    const c5 = color('#ff00ff'); // Rosa (Disparo/Pistola)
     
     // Mezcla segmentada
     const step1 = t.mul(4.0).clamp(0.0, 1.0);
