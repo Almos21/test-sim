@@ -8,7 +8,7 @@ export function createParameters() {
     time: uniform(0.0), 
     initialSpeed: uniform(0.0), // Inicia totalmente quieto
     maxSpeed: uniform(30.0),
-    boundsSize: uniform(10.0),
+    boundsSize: uniform(20.0,30.0),
     particleSize: uniform(0.035),
 
     windEnabled: uniform(0.0),
