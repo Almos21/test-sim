@@ -3,9 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import WebGPU from 'three/addons/capabilities/WebGPU.js';
 import './styles.css';
 
-// Las rutas seguras (en la misma carpeta) para evitar el error 404
-import { createParameters } from './parameters.js';
-import { createSimulation } from './createSimulation.js';
+import { createParameters } from './simulation/parameters.js';
+import { createSimulation } from './simulation/createSimulation.js';
 
 const PARTICLE_COUNT = 131072; 
 
@@ -17,7 +16,6 @@ async function main() {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color('#030405'); 
 
-  // MANTENEMOS LA CÁMARA INTACTA COMO PEDISTE
   const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 100);
   camera.position.set(0, 0, 11);
 
@@ -27,7 +25,6 @@ async function main() {
   mount.appendChild(renderer.domElement);
   await renderer.init();
 
-  // MANTENEMOS ORBIT CONTROLS
   const orbit = new OrbitControls(camera, renderer.domElement);
   orbit.enableDamping = true;
   orbit.target.set(0, 0, 0);
@@ -40,7 +37,6 @@ async function main() {
   const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const hit = new THREE.Vector3();
 
-  // Actualizar atractor y cañón con el mouse
   addEventListener('pointermove', (event) => {
     pointerNdc.x = (event.clientX / innerWidth) * 2 - 1;
     pointerNdc.y = -(event.clientY / innerHeight) * 2 + 1;
@@ -52,16 +48,11 @@ async function main() {
     }
   });
 
-  // Gatillo Láser con Clic Izquierdo
   addEventListener('pointerdown', (e) => { 
     if (e.button === 0 && params.beamEnabled.value > 0) params.beamFiring.value = 1; 
   });
   addEventListener('pointerup', () => { params.beamFiring.value = 0; });
 
-  // ==========================================
-  // MOTOR DE VJ PERFORMANCE (TECLADO CONTINUO)
-  // ==========================================
-  
   const perfMap = {
     'Digit1': { 
       name: 'RADIAL (ATRACCIÓN/REPULSIÓN)', toggle: params.radialEnabled, 
@@ -120,7 +111,6 @@ async function main() {
   let activeChannel = 'Digit1'; 
   const keysDown = new Set();
 
-  // Creación del HUD en pantalla
   const hud = document.createElement('div');
   hud.style.cssText = 'position:fixed; top:20px; left:20px; color:#fff; font-family:monospace; font-size:13px; pointer-events:none; z-index:100; text-shadow: 1px 1px 2px #000; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; border: 1px solid #333;';
   document.body.appendChild(hud);
@@ -129,14 +119,12 @@ async function main() {
     if (e.repeat) return;
     keysDown.add(e.code);
     
-    // Cambiar de canal y Encender/Apagar
     if (perfMap[e.code]) {
       activeChannel = e.code;
       const toggleUniform = perfMap[e.code].toggle;
       toggleUniform.value = toggleUniform.value > 0 ? 0 : 1; 
     }
 
-    // Resetear posición de partículas
     if (e.code === 'Space') simulation.reset();
   });
 
@@ -166,10 +154,6 @@ async function main() {
     hud.innerHTML = html;
   }
 
-  // ==========================================
-  // LOOP PRINCIPAL
-  // ==========================================
-
   addEventListener('resize', () => {
     camera.aspect = innerWidth / innerHeight;
     camera.updateProjectionMatrix();
@@ -182,10 +166,8 @@ async function main() {
     const delta = clock.getDelta();
     params.time.value += delta;
 
-    // Actualizamos OrbitControls
     orbit.update();
 
-    // Lógica del Teclado Contínuo
     let dir = (keysDown.has('ArrowUp') ? 1 : 0) - (keysDown.has('ArrowDown') ? 1 : 0);
     
     if (dir !== 0 && perfMap[activeChannel]) {
