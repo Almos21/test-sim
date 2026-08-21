@@ -3,7 +3,6 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import WebGPU from 'three/addons/capabilities/WebGPU.js';
 import './styles.css';
 
-// Rutas corregidas para la estructura de carpetas
 import { createParameters } from './simulation/parameters.js';
 import { createSimulation } from './simulation/createSimulation.js';
 
@@ -54,7 +53,6 @@ async function main() {
   });
   addEventListener('pointerup', () => { params.beamFiring.value = 0; });
 
-  // Configuración de Canales
   const perfMap = {
     'Digit1': { name: 'RADIAL (ATRACCIÓN/REPULSIÓN)', toggle: params.radialEnabled, keys: { 'KeyQ': { label: 'Fuerza', target: params.radialStrength, step: 8.0, min: -15, max: 15 }, 'KeyW': { label: 'Radio', target: params.radialRadius, step: 5.0, min: 0.1, max: 20 }, 'KeyE': { label: 'Suavidad', target: params.softening, step: 1.0, min: 0.01, max: 2.0 } } },
     'Digit2': { name: 'VÓRTICE', toggle: params.vortexEnabled, keys: { 'KeyQ': { label: 'Fuerza Vórtice', target: params.vortexStrength, step: 4.0, min: -8, max: 8 } } },
@@ -67,7 +65,7 @@ async function main() {
 
   let activeChannel = 'Digit1'; 
   const keysDown = new Set();
-  let hudVisible = true; // Control de visibilidad
+  let hudVisible = true; 
 
   const hud = document.createElement('div');
   hud.style.cssText = 'position:fixed; top:20px; left:20px; color:#fff; font-family:monospace; font-size:13px; pointer-events:none; z-index:100; text-shadow: 1px 1px 2px #000; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; border: 1px solid #333;';
@@ -77,10 +75,11 @@ async function main() {
     if (e.repeat) return;
     keysDown.add(e.code);
     
-    // Toggle de visibilidad con P
+    // Toggle HUD y Cursor
     if (e.code === 'KeyP') {
       hudVisible = !hudVisible;
       hud.style.display = hudVisible ? 'block' : 'none';
+      document.body.style.cursor = hudVisible ? 'default' : 'none';
     }
     
     if (perfMap[e.code]) {
