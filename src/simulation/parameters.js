@@ -29,7 +29,7 @@ export function createParameters() {
     waveEnabled: uniform(0.0), // Apagado
     waveStrength: uniform(5.0),
     waveFrequency: uniform(2.0),
-    waveBPM: uniform(120.0), 
+    waveBPM: uniform(130.0), 
     waveRadius: uniform(4.0),
 
     beamEnabled: uniform(0.0), // Apagado
