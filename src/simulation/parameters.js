@@ -35,15 +35,16 @@ export function createParameters() {
 
     // CAÑÓN / RAYO (Separado interruptor y gatillo)
     beamEnabled: uniform(0.0),
-    beamFiring: uniform(0.0), // Nuevo estado para el clic
+    beamFiring: uniform(0.0), // Estado exclusivo para el clic
     beamOrigin: uniform(new THREE.Vector3(0, 0, 0)),
     beamDirection: uniform(new THREE.Vector3(0, 1, 0)),
     beamStrength: uniform(120.0),
     beamRadius: uniform(0.3),
 
-    // RUIDO DE ESTÁTICA / TEMBLOR
-    noiseEnabled: uniform(0.0),
-    noiseStrength: uniform(1.5),
-    noiseFrequency: uniform(1.5)
+    // NUEVO: GRAVEDAD BINARIA Y CHOQUES (Estilo Particle Life)
+    binaryEnabled: uniform(0.0),
+    binaryGravity: uniform(3.0),
+    repulsionChance: uniform(0.5), // Probabilidad de choque por frame (0% a 5%)
+    repulsionStrength: uniform(150.0) // Violencia del choque
   };
 }

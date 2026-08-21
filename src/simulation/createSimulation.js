@@ -41,7 +41,6 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
   const updateParticles = Fn(() => {
     const p = positionBuffer.element(instanceIndex);
     const v = velocityBuffer.element(instanceIndex);
-    const iFloat = instanceIndex.toFloat(); // Conversión segura para GPU
 
     const dt = params.dt.mul(params.timeScale);
     const force = vec3(0.0).toVar();
@@ -93,18 +92,37 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
       .mul(beamFalloff)
       .mul(inFront)
       .mul(params.beamEnabled)
-      .mul(params.beamFiring);
+      .mul(params.beamFiring); 
     force.addAssign(beamForce);
 
-    // -- RUIDO DE ESTÁTICA / TEMBLOR (Tipado correcto con iFloat)
-    const noiseFreq = params.noiseFrequency.mul(50.0);
-    const noisePhase = iFloat.add(params.time.mul(noiseFreq));
-    const noiseForce = vec3(
-      noisePhase.sin(),
-      noisePhase.mul(1.3).cos(),
-      noisePhase.mul(0.7).sin()
-    ).mul(params.noiseStrength).mul(params.noiseEnabled);
-    force.addAssign(noiseForce);
+    // -- NUEVO: GRAVEDAD BINARIA Y CHOQUES (Estilo Particle Life)
+    // 1. Gravedad 50/50 asignada por el ID único de la partícula
+    const isUp = step(0.5, hash(instanceIndex.add(uint(777)))); 
+    const yDir = isUp.mul(2.0).sub(1.0); // 1.0 (Sube) o -1.0 (Baja)
+    const gravityForce = vec3(0.0, yDir, 0.0).mul(params.binaryGravity);
+
+    // 2. Micro-colisiones probabilísticas (Motor de Falsa Colisión)
+    // Creamos una semilla aleatoria que cambia con el tiempo
+    const timeUint = uint(params.time.mul(60.0));
+    const randomSeed = instanceIndex.add(timeUint);
+    const chanceVal = hash(randomSeed);
+    
+    // Evaluamos si ocurre el choque (ej: 0.5% de probabilidad = mayor a 0.995)
+    const threshold = params.repulsionChance.div(100.0).mul(-1.0).add(1.0);
+    const isCollision = step(threshold, chanceVal);
+    
+    // Calculamos un vector de repulsión esférica aleatorio súper violento
+    const burstDir = vec3(
+      hash(randomSeed.add(uint(1))),
+      hash(randomSeed.add(uint(2))),
+      hash(randomSeed.add(uint(3)))
+    ).sub(0.5).normalize();
+    
+    const burstForce = burstDir.mul(params.repulsionStrength).mul(isCollision);
+    
+    // Sumamos la gravedad constante y el estallido repentino
+    const binaryLifeForce = gravityForce.add(burstForce).mul(params.binaryEnabled);
+    force.addAssign(binaryLifeForce);
 
     // -- Drag / Fricción
     force.addAssign(v.mul(params.dragCoefficient).mul(params.dragEnabled).mul(-1.0));

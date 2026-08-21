@@ -92,8 +92,9 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
     waveRadius: params.waveRadius.value,
     beamStrength: params.beamStrength.value,
     beamRadius: params.beamRadius.value,
-    noiseStrength: params.noiseStrength.value,
-    noiseFrequency: params.noiseFrequency.value
+    binaryGravity: params.binaryGravity.value,
+    repulsionChance: params.repulsionChance.value,
+    repulsionStrength: params.repulsionStrength.value
   };
 
   refreshers.push(rangeRow(sim, 'timeScale', state, 'timeScale', 0, 2, 0.01, (v) => params.timeScale.value = v, () => params.timeScale.value));
@@ -120,7 +121,6 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   waveForce.className = 'group';
   waveForce.innerHTML = '<h2>Fuerza de Ondas (BPM)</h2>';
   panel.append(waveForce);
-
   refreshers.push(checkRow(waveForce, 'Ondas Activadas', params.waveEnabled.value > 0, (v) => params.waveEnabled.value = v ? 1 : 0, () => params.waveEnabled.value > 0));
   refreshers.push(rangeRow(waveForce, 'Magnitud', state, 'waveStrength', -15, 15, 0.5, (v) => params.waveStrength.value = v, () => params.waveStrength.value));
   refreshers.push(rangeRow(waveForce, 'Frecuencia Espacial', state, 'waveFrequency', 0.1, 10, 0.1, (v) => params.waveFrequency.value = v, () => params.waveFrequency.value));
@@ -136,14 +136,15 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
   refreshers.push(rangeRow(gunForce, 'Potencia (Fuerza)', state, 'beamStrength', 10, 300, 1, (v) => params.beamStrength.value = v, () => params.beamStrength.value));
   refreshers.push(rangeRow(gunForce, 'Grosor de la Línea', state, 'beamRadius', 0.1, 3.0, 0.1, (v) => params.beamRadius.value = v, () => params.beamRadius.value));
 
-  // RUIDO DE ESTÁTICA / TEMBLOR
-  const noiseGroup = document.createElement('div');
-  noiseGroup.className = 'group';
-  noiseGroup.innerHTML = '<h2>Ruido / Estática (Temblor)</h2>';
-  panel.append(noiseGroup);
-  refreshers.push(checkRow(noiseGroup, 'Ruido Activado', params.noiseEnabled.value > 0, (v) => params.noiseEnabled.value = v ? 1 : 0, () => params.noiseEnabled.value > 0));
-  refreshers.push(rangeRow(noiseGroup, 'Intensidad (Magnitud)', state, 'noiseStrength', 0.1, 10, 0.1, (v) => params.noiseStrength.value = v, () => params.noiseStrength.value));
-  refreshers.push(rangeRow(noiseGroup, 'Frecuencia (Velocidad)', state, 'noiseFrequency', 0.1, 5, 0.05, (v) => params.noiseFrequency.value = v, () => params.noiseFrequency.value));
+  // GRAVEDAD BINARIA Y CHOQUES
+  const binaryGroup = document.createElement('div');
+  binaryGroup.className = 'group';
+  binaryGroup.innerHTML = '<h2>Gravedad Binaria y Choques</h2>';
+  panel.append(binaryGroup);
+  refreshers.push(checkRow(binaryGroup, 'Activado', params.binaryEnabled.value > 0, (v) => params.binaryEnabled.value = v ? 1 : 0, () => params.binaryEnabled.value > 0));
+  refreshers.push(rangeRow(binaryGroup, 'Gravedad Subida/Bajada', state, 'binaryGravity', 0.1, 15, 0.1, (v) => params.binaryGravity.value = v, () => params.binaryGravity.value));
+  refreshers.push(rangeRow(binaryGroup, 'Probabilidad de Choque (%)', state, 'repulsionChance', 0, 5, 0.05, (v) => params.repulsionChance.value = v, () => params.repulsionChance.value));
+  refreshers.push(rangeRow(binaryGroup, 'Violencia del Choque', state, 'repulsionStrength', 50, 500, 10, (v) => params.repulsionStrength.value = v, () => params.repulsionStrength.value));
 
   const tests = document.createElement('div');
   tests.className = 'group';
@@ -158,7 +159,7 @@ export function createLabPanel({ params, onReset, onPreset, onModeChange, onPaus
     ['vortex', '5 · Vórtice'],
     ['waves', '6 · Ondas (BPM)'],
     ['beam', '7 · Rayo / Cañón'],
-    ['noise', '8 · Ruido / Estática']
+    ['binary', '8 · Caos Binario']
   ]) button(tests, label, () => onPreset(id));
 
   const actions = document.createElement('div');

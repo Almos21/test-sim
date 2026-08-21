@@ -50,7 +50,7 @@ async function main() {
   const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const hit = new THREE.Vector3();
 
-  // El movimiento del mouse actualiza la posición del cañón pero NO dispara por sí solo
+  // Movimiento del cursor
   addEventListener('pointermove', (event) => {
     pointerNdc.x = (event.clientX / innerWidth) * 2 - 1;
     pointerNdc.y = -(event.clientY / innerHeight) * 2 + 1;
@@ -70,7 +70,7 @@ async function main() {
   let mode = 'LAB';
   let panel;
 
-  // Gatillo exclusivo: el disparo solo se activa al presionar el clic izquierdo
+  // Gatillo exclusivo para el láser
   addEventListener('pointerdown', (event) => {
     if (event.button !== 0 || mode !== 'LAB') return; 
     if (params.beamEnabled.value > 0) {
@@ -90,7 +90,7 @@ async function main() {
     params.waveEnabled.value = 0;
     params.beamEnabled.value = 0;
     params.beamFiring.value = 0;
-    params.noiseEnabled.value = 0;
+    params.binaryEnabled.value = 0;
     params.wind.value.set(0, 0, 0);
     params.initialSpeed.value = 0;
 
@@ -125,10 +125,11 @@ async function main() {
       params.beamStrength.value = 150.0;
       params.dragEnabled.value = 1;
       params.dragCoefficient.value = 0.15;
-    } else if (id === 'noise') {
-      params.noiseEnabled.value = 1;
-      params.noiseStrength.value = 2.5;
-      params.noiseFrequency.value = 1.5;
+    } else if (id === 'binary') { // EL NUEVO PRESET 8
+      params.binaryEnabled.value = 1;
+      params.binaryGravity.value = 3.0;
+      params.repulsionChance.value = 0.5; 
+      params.repulsionStrength.value = 200.0; // Violencia máxima para encender colores
       params.dragEnabled.value = 1;
       params.dragCoefficient.value = 0.1;
     }
@@ -173,7 +174,7 @@ async function main() {
     if (event.code === 'Digit5') applyPreset('vortex');
     if (event.code === 'Digit6') applyPreset('waves');
     if (event.code === 'Digit7') applyPreset('beam');
-    if (event.code === 'Digit8') applyPreset('noise');
+    if (event.code === 'Digit8') applyPreset('binary');
 
     if (event.code === 'Space') {
       event.preventDefault();
