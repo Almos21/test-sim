@@ -158,8 +158,8 @@ export function createSimulation({ renderer, scene, params, count = 131072 }) {
     const c1 = color('#0011ff'); // Azul
     const c2 = color('#00ffff'); // Cian
     const c3 = color('#11ff00'); // Verde
-    const c4 = color('#ffcc00'); // Amarillo
-    const c5 = color('#ff0000'); // Rojo
+    const c4 = color('#ff0000'); // Amarillo
+    const c5 = color('#cc00ff'); // Rojo
     
     const step1 = t.mul(4.0).clamp(0.0, 1.0);
     const mix1 = mix(c1, c2, step1);

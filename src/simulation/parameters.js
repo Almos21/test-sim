@@ -36,12 +36,12 @@ export function createParameters() {
     beamFiring: uniform(0.0),
     beamOrigin: uniform(new THREE.Vector3(0, 0, 0)),
     beamDirection: uniform(new THREE.Vector3(0, 1, 0)),
-    beamStrength: uniform(120.0),
+    beamStrength: uniform(130.0),
     beamRadius: uniform(0.3),
 
     binaryEnabled: uniform(0.0), // Apagado
     binaryGravity: uniform(3.0),
-    repulsionChance: uniform(0.5), 
-    repulsionStrength: uniform(150.0) 
+    repulsionChance: uniform(0), 
+    repulsionStrength: uniform(0) 
   };
 }
