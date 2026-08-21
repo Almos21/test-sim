@@ -3,8 +3,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import WebGPU from 'three/addons/capabilities/WebGPU.js';
 import './styles.css';
 
-import { createParameters } from './simulation/parameters.js';
-import { createSimulation } from './simulation/createSimulation.js';
+// Las rutas seguras (en la misma carpeta) para evitar el error 404
+import { createParameters } from './parameters.js';
+import { createSimulation } from './createSimulation.js';
 
 const PARTICLE_COUNT = 131072; 
 
@@ -14,8 +15,9 @@ async function main() {
 
   const clock = new THREE.Clock();
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#030405'); // Fondo un poco más oscuro
+  scene.background = new THREE.Color('#030405'); 
 
+  // MANTENEMOS LA CÁMARA INTACTA COMO PEDISTE
   const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 100);
   camera.position.set(0, 0, 11);
 
@@ -25,16 +27,20 @@ async function main() {
   mount.appendChild(renderer.domElement);
   await renderer.init();
 
+  // MANTENEMOS ORBIT CONTROLS
+  const orbit = new OrbitControls(camera, renderer.domElement);
+  orbit.enableDamping = true;
+  orbit.target.set(0, 0, 0);
+
   const params = createParameters();
   const simulation = createSimulation({ renderer, scene, params, count: PARTICLE_COUNT });
 
-  // Controles
   const pointerNdc = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
   const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const hit = new THREE.Vector3();
 
-  // Raycaster y Atractor
+  // Actualizar atractor y cañón con el mouse
   addEventListener('pointermove', (event) => {
     pointerNdc.x = (event.clientX / innerWidth) * 2 - 1;
     pointerNdc.y = -(event.clientY / innerHeight) * 2 + 1;
@@ -46,15 +52,16 @@ async function main() {
     }
   });
 
-  // Gatillo Láser (Mantiene la función original)
-  addEventListener('pointerdown', (e) => { if (e.button === 0 && params.beamEnabled.value > 0) params.beamFiring.value = 1; });
+  // Gatillo Láser con Clic Izquierdo
+  addEventListener('pointerdown', (e) => { 
+    if (e.button === 0 && params.beamEnabled.value > 0) params.beamFiring.value = 1; 
+  });
   addEventListener('pointerup', () => { params.beamFiring.value = 0; });
 
   // ==========================================
-  // MOTOR DE VJ PERFORMANCE (TECLADO)
+  // MOTOR DE VJ PERFORMANCE (TECLADO CONTINUO)
   // ==========================================
   
-  // Mapa de configuración (Velocidad de ajuste por segundo para ser muy suave)
   const perfMap = {
     'Digit1': { 
       name: 'RADIAL (ATRACCIÓN/REPULSIÓN)', toggle: params.radialEnabled, 
@@ -110,7 +117,7 @@ async function main() {
     }
   };
 
-  let activeChannel = 'Digit1'; // Canal activo por defecto
+  let activeChannel = 'Digit1'; 
   const keysDown = new Set();
 
   // Creación del HUD en pantalla
@@ -122,22 +129,21 @@ async function main() {
     if (e.repeat) return;
     keysDown.add(e.code);
     
-    // Cambiar de canal y Togglear (Prender/Apagar)
+    // Cambiar de canal y Encender/Apagar
     if (perfMap[e.code]) {
       activeChannel = e.code;
       const toggleUniform = perfMap[e.code].toggle;
       toggleUniform.value = toggleUniform.value > 0 ? 0 : 1; 
     }
 
-    // Resetear todo rápido con barra espaciadora
+    // Resetear posición de partículas
     if (e.code === 'Space') simulation.reset();
   });
 
   addEventListener('keyup', (e) => { keysDown.delete(e.code); });
 
-  // Función para actualizar el texto del HUD (Optimizado)
   function updateHUD() {
-    let html = `<div style="margin-bottom:10px; color:#aaa;"><strong>PERFORMANCE MODE</strong> | [Space]: Reset Particles</div>`;
+    let html = `<div style="margin-bottom:10px; color:#aaa;"><strong>PERFORMANCE MODE</strong> | [Space]: Reset</div>`;
     
     for (const [digitCode, config] of Object.entries(perfMap)) {
       const isAct = digitCode === activeChannel;
@@ -164,11 +170,20 @@ async function main() {
   // LOOP PRINCIPAL
   // ==========================================
 
+  addEventListener('resize', () => {
+    camera.aspect = innerWidth / innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(innerWidth, innerHeight);
+  });
+
   simulation.reset();
 
   renderer.setAnimationLoop(() => {
     const delta = clock.getDelta();
     params.time.value += delta;
+
+    // Actualizamos OrbitControls
+    orbit.update();
 
     // Lógica del Teclado Contínuo
     let dir = (keysDown.has('ArrowUp') ? 1 : 0) - (keysDown.has('ArrowDown') ? 1 : 0);
@@ -190,7 +205,6 @@ async function main() {
     }
 
     updateHUD();
-
     simulation.stepSimulation();
     renderer.render(scene, camera);
   });
