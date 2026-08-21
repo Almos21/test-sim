@@ -6,7 +6,7 @@ export function createParameters() {
     dt: uniform(1 / 60),
     timeScale: uniform(1.0),
     time: uniform(0.0), 
-    initialSpeed: uniform(0.35),
+    initialSpeed: uniform(0.0), // Inicia totalmente quieto
     maxSpeed: uniform(30.0),
     boundsSize: uniform(10.0),
     particleSize: uniform(0.035),
@@ -14,37 +14,34 @@ export function createParameters() {
     windEnabled: uniform(0.0),
     wind: uniform(new THREE.Vector3(0.0, 0.0, 0.0)),
 
-    radialEnabled: uniform(1.0),
+    radialEnabled: uniform(0.0), // Apagado al inicio
     attractor: uniform(new THREE.Vector3(0.0, 0.0, 0.0)),
     radialStrength: uniform(2.2),
     radialRadius: uniform(8.0),
     softening: uniform(0.35),
 
-    vortexEnabled: uniform(1.0),
+    vortexEnabled: uniform(0.0),
     vortexStrength: uniform(1.4),
 
-    dragEnabled: uniform(1.0),
+    dragEnabled: uniform(1.0), // Fricción activa por defecto para estabilizar
     dragCoefficient: uniform(0.12),
 
-    // ONDAS BPM
     waveEnabled: uniform(0.0),
     waveStrength: uniform(5.0),
     waveFrequency: uniform(2.0),
     waveBPM: uniform(120.0), 
     waveRadius: uniform(4.0),
 
-    // CAÑÓN / RAYO (Separado interruptor y gatillo)
     beamEnabled: uniform(0.0),
-    beamFiring: uniform(0.0), // Estado exclusivo para el clic
+    beamFiring: uniform(0.0),
     beamOrigin: uniform(new THREE.Vector3(0, 0, 0)),
     beamDirection: uniform(new THREE.Vector3(0, 1, 0)),
     beamStrength: uniform(120.0),
     beamRadius: uniform(0.3),
 
-    // NUEVO: GRAVEDAD BINARIA Y CHOQUES (Estilo Particle Life)
     binaryEnabled: uniform(0.0),
     binaryGravity: uniform(3.0),
-    repulsionChance: uniform(0.5), // Probabilidad de choque por frame (0% a 5%)
-    repulsionStrength: uniform(150.0) // Violencia del choque
+    repulsionChance: uniform(0.5), 
+    repulsionStrength: uniform(150.0) 
   };
 }

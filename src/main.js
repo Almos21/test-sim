@@ -5,21 +5,16 @@ import './styles.css';
 
 import { createParameters } from './simulation/parameters.js';
 import { createSimulation } from './simulation/createSimulation.js';
-import { createLabPanel } from './ui/labPanel.js';
 
 const PARTICLE_COUNT = 131072; 
 
 async function main() {
   const mount = document.querySelector('#app');
-
-  if (!WebGPU.isAvailable()) {
-    mount.appendChild(WebGPU.getErrorMessage());
-    throw new Error('Este proyecto requiere WebGPU para ejecutar compute shaders.');
-  }
+  if (!WebGPU.isAvailable()) { mount.appendChild(WebGPU.getErrorMessage()); return; }
 
   const clock = new THREE.Clock();
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color('#050607');
+  scene.background = new THREE.Color('#030405'); // Fondo un poco más oscuro
 
   const camera = new THREE.PerspectiveCamera(50, innerWidth / innerHeight, 0.05, 100);
   camera.position.set(0, 0, 11);
@@ -30,184 +25,177 @@ async function main() {
   mount.appendChild(renderer.domElement);
   await renderer.init();
 
-  const orbit = new OrbitControls(camera, renderer.domElement);
-  orbit.enableDamping = true;
-  orbit.target.set(0, 0, 0);
-
   const params = createParameters();
   const simulation = createSimulation({ renderer, scene, params, count: PARTICLE_COUNT });
 
-  const attractorHelper = new THREE.Mesh(
-    new THREE.SphereGeometry(0.12, 16, 12),
-    new THREE.MeshBasicMaterial({ color: '#ffffff' })
-  );
-  scene.add(attractorHelper);
-  const axes = new THREE.AxesHelper(1.5);
-  scene.add(axes);
-
+  // Controles
   const pointerNdc = new THREE.Vector2();
   const raycaster = new THREE.Raycaster();
   const interactionPlane = new THREE.Plane(new THREE.Vector3(0, 0, 1), 0);
   const hit = new THREE.Vector3();
 
-  // Movimiento del cursor
+  // Raycaster y Atractor
   addEventListener('pointermove', (event) => {
     pointerNdc.x = (event.clientX / innerWidth) * 2 - 1;
     pointerNdc.y = -(event.clientY / innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointerNdc, camera);
     if (raycaster.ray.intersectPlane(interactionPlane, hit)) {
       params.attractor.value.copy(hit);
-      attractorHelper.position.copy(hit);
-      
       params.beamOrigin.value.copy(hit);
-      if (hit.lengthSq() > 0.001) {
-        params.beamDirection.value.copy(hit).normalize();
-      }
+      if (hit.lengthSq() > 0.001) params.beamDirection.value.copy(hit).normalize();
     }
   });
 
-  let paused = false;
-  let mode = 'LAB';
-  let panel;
+  // Gatillo Láser (Mantiene la función original)
+  addEventListener('pointerdown', (e) => { if (e.button === 0 && params.beamEnabled.value > 0) params.beamFiring.value = 1; });
+  addEventListener('pointerup', () => { params.beamFiring.value = 0; });
 
-  // Gatillo exclusivo para el láser
-  addEventListener('pointerdown', (event) => {
-    if (event.button !== 0 || mode !== 'LAB') return; 
-    if (params.beamEnabled.value > 0) {
-      params.beamFiring.value = 1;
+  // ==========================================
+  // MOTOR DE VJ PERFORMANCE (TECLADO)
+  // ==========================================
+  
+  // Mapa de configuración (Velocidad de ajuste por segundo para ser muy suave)
+  const perfMap = {
+    'Digit1': { 
+      name: 'RADIAL (ATRACCIÓN/REPULSIÓN)', toggle: params.radialEnabled, 
+      keys: { 
+        'KeyQ': { label: 'Fuerza', target: params.radialStrength, step: 8.0, min: -15, max: 15 },
+        'KeyW': { label: 'Radio', target: params.radialRadius, step: 5.0, min: 0.1, max: 20 },
+        'KeyE': { label: 'Suavidad', target: params.softening, step: 1.0, min: 0.01, max: 2.0 }
+      } 
+    },
+    'Digit2': { 
+      name: 'VÓRTICE', toggle: params.vortexEnabled, 
+      keys: { 'KeyQ': { label: 'Fuerza Vórtice', target: params.vortexStrength, step: 4.0, min: -8, max: 8 } } 
+    },
+    'Digit3': { 
+      name: 'VIENTO', toggle: params.windEnabled, 
+      keys: { 
+        'KeyQ': { label: 'Viento X', target: params.wind, vector: 'x', step: 5.0, min: -10, max: 10 },
+        'KeyW': { label: 'Viento Y', target: params.wind, vector: 'y', step: 5.0, min: -10, max: 10 }
+      } 
+    },
+    'Digit4': { 
+      name: 'ONDAS BPM', toggle: params.waveEnabled, 
+      keys: { 
+        'KeyQ': { label: 'Fuerza', target: params.waveStrength, step: 15.0, min: -20, max: 20 },
+        'KeyW': { label: 'Frecuencia', target: params.waveFrequency, step: 2.0, min: 0.1, max: 10 },
+        'KeyE': { label: 'BPM', target: params.waveBPM, step: 40.0, min: 30, max: 240 },
+        'KeyR': { label: 'Radio', target: params.waveRadius, step: 6.0, min: 0.5, max: 15 }
+      } 
+    },
+    'Digit5': { 
+      name: 'CAÑÓN (Dispara con Clic)', toggle: params.beamEnabled, 
+      keys: { 
+        'KeyQ': { label: 'Poder', target: params.beamStrength, step: 150.0, min: 10, max: 500 },
+        'KeyW': { label: 'Grosor', target: params.beamRadius, step: 1.0, min: 0.05, max: 3.0 }
+      } 
+    },
+    'Digit6': { 
+      name: 'GLOBAL (Entorno)', toggle: params.dragEnabled, 
+      keys: { 
+        'KeyQ': { label: 'TimeScale', target: params.timeScale, step: 1.0, min: 0.0, max: 3.0 },
+        'KeyW': { label: 'Fricción (Drag)', target: params.dragCoefficient, step: 0.5, min: 0.0, max: 1.0 },
+        'KeyE': { label: 'Max Speed', target: params.maxSpeed, step: 15.0, min: 0.1, max: 100.0 },
+        'KeyR': { label: 'Tamaño Partícula', target: params.particleSize, step: 0.05, min: 0.001, max: 0.1 }
+      } 
+    },
+    'Digit8': { 
+      name: 'CAOS BINARIO', toggle: params.binaryEnabled, 
+      keys: { 
+        'KeyQ': { label: 'Gravedad', target: params.binaryGravity, step: 5.0, min: 0.1, max: 20.0 },
+        'KeyW': { label: 'Prob. Choque %', target: params.repulsionChance, step: 2.0, min: 0.0, max: 10.0 },
+        'KeyE': { label: 'Violencia (Repulsión)', target: params.repulsionStrength, step: 200.0, min: 0.0, max: 800.0 }
+      } 
     }
-  });
-
-  addEventListener('pointerup', () => {
-    params.beamFiring.value = 0;
-  });
-
-  const applyPreset = (id) => {
-    params.windEnabled.value = 0;
-    params.radialEnabled.value = 0;
-    params.vortexEnabled.value = 0;
-    params.dragEnabled.value = 0;
-    params.waveEnabled.value = 0;
-    params.beamEnabled.value = 0;
-    params.beamFiring.value = 0;
-    params.binaryEnabled.value = 0;
-    params.wind.value.set(0, 0, 0);
-    params.initialSpeed.value = 0;
-
-    if (id === 'inertia') {
-      params.initialSpeed.value = 0.8;
-    } else if (id === 'wind') {
-      params.windEnabled.value = 1;
-      params.wind.value.set(1.5, 0, 0);
-    } else if (id === 'attract') {
-      params.radialEnabled.value = 1;
-      params.radialStrength.value = 3.0;
-    } else if (id === 'repel') {
-      params.radialEnabled.value = 1;
-      params.radialStrength.value = -3.0;
-    } else if (id === 'vortex') {
-      params.radialEnabled.value = 1;
-      params.radialStrength.value = 1.0;
-      params.vortexEnabled.value = 1;
-      params.vortexStrength.value = 3.0;
-      params.dragEnabled.value = 1;
-      params.dragCoefficient.value = 0.08;
-    } else if (id === 'waves') {
-      params.waveEnabled.value = 1;
-      params.waveStrength.value = 5.0; 
-      params.waveFrequency.value = 2.0; 
-      params.waveBPM.value = 120.0;
-      params.waveRadius.value = 8.0; 
-      params.dragEnabled.value = 1;
-      params.dragCoefficient.value = 0.2;
-    } else if (id === 'beam') {
-      params.beamEnabled.value = 1;
-      params.beamStrength.value = 150.0;
-      params.dragEnabled.value = 1;
-      params.dragCoefficient.value = 0.15;
-    } else if (id === 'binary') { // EL NUEVO PRESET 8
-      params.binaryEnabled.value = 1;
-      params.binaryGravity.value = 3.0;
-      params.repulsionChance.value = 0.5; 
-      params.repulsionStrength.value = 200.0; // Violencia máxima para encender colores
-      params.dragEnabled.value = 1;
-      params.dragCoefficient.value = 0.1;
-    }
-    simulation.reset();
-    panel?.refresh();
   };
 
-  const setMode = (next) => {
-    mode = next;
-    const lab = mode === 'LAB';
-    panel.setVisible(lab);
-    axes.visible = lab;
-    attractorHelper.visible = lab;
-    orbit.enabled = lab;
-    hud.innerHTML = lab
-      ? '<strong>LAB</strong> · Mantén Clic Izq: Disparar Láser · R: reset · 1–8: pruebas aisladas'
-      : '<strong>PERFORMANCE</strong> · P: lab · espacio: invertir radial · puntero: atractor';
-  };
+  let activeChannel = 'Digit1'; // Canal activo por defecto
+  const keysDown = new Set();
 
-  panel = createLabPanel({
-    params,
-    onReset: () => simulation.reset(),
-    onPreset: applyPreset,
-    onModeChange: () => setMode(mode === 'LAB' ? 'PERFORMANCE' : 'LAB'),
-    onPauseChange: () => paused = !paused
-  });
-
+  // Creación del HUD en pantalla
   const hud = document.createElement('div');
-  hud.className = 'hud';
-  document.body.append(hud);
-  setMode('LAB');
+  hud.style.cssText = 'position:fixed; top:20px; left:20px; color:#fff; font-family:monospace; font-size:13px; pointer-events:none; z-index:100; text-shadow: 1px 1px 2px #000; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 8px; border: 1px solid #333;';
+  document.body.appendChild(hud);
 
-  let savedRadialStrength = params.radialStrength.value;
-  addEventListener('keydown', (event) => {
-    if (event.repeat) return;
-    if (event.code === 'KeyP') setMode(mode === 'LAB' ? 'PERFORMANCE' : 'LAB');
-    if (event.code === 'KeyR') simulation.reset();
-    if (event.code === 'Digit1') applyPreset('inertia');
-    if (event.code === 'Digit2') applyPreset('wind');
-    if (event.code === 'Digit3') applyPreset('attract');
-    if (event.code === 'Digit4') applyPreset('repel');
-    if (event.code === 'Digit5') applyPreset('vortex');
-    if (event.code === 'Digit6') applyPreset('waves');
-    if (event.code === 'Digit7') applyPreset('beam');
-    if (event.code === 'Digit8') applyPreset('binary');
-
-    if (event.code === 'Space') {
-      event.preventDefault();
-      savedRadialStrength = params.radialStrength.value || 2.0;
-      params.radialEnabled.value = 1;
-      params.radialStrength.value = -savedRadialStrength;
+  addEventListener('keydown', (e) => {
+    if (e.repeat) return;
+    keysDown.add(e.code);
+    
+    // Cambiar de canal y Togglear (Prender/Apagar)
+    if (perfMap[e.code]) {
+      activeChannel = e.code;
+      const toggleUniform = perfMap[e.code].toggle;
+      toggleUniform.value = toggleUniform.value > 0 ? 0 : 1; 
     }
+
+    // Resetear todo rápido con barra espaciadora
+    if (e.code === 'Space') simulation.reset();
   });
 
-  addEventListener('keyup', (event) => {
-    if (event.code === 'Space') params.radialStrength.value = savedRadialStrength;
-  });
+  addEventListener('keyup', (e) => { keysDown.delete(e.code); });
 
-  addEventListener('resize', () => {
-    camera.aspect = innerWidth / innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(innerWidth, innerHeight);
-  });
+  // Función para actualizar el texto del HUD (Optimizado)
+  function updateHUD() {
+    let html = `<div style="margin-bottom:10px; color:#aaa;"><strong>PERFORMANCE MODE</strong> | [Space]: Reset Particles</div>`;
+    
+    for (const [digitCode, config] of Object.entries(perfMap)) {
+      const isAct = digitCode === activeChannel;
+      const isOn = config.toggle.value > 0;
+      const num = digitCode.replace('Digit', '');
+      
+      html += `<div style="margin-bottom: 5px; ${isAct ? 'color: #00ffcc;' : (isOn ? 'color: #fff;' : 'color: #555;')}">`;
+      html += `[${num}] ${config.name} ${isOn ? '<b>[ON]</b>' : '[OFF]'}`;
+      
+      if (isAct) {
+        html += `<br><span style="color:#aaa; font-size:11px;">MANTÉN LETRA + FLECHA ARRIBA/ABAJO:</span><br>`;
+        for (const [keyCode, paramDef] of Object.entries(config.keys)) {
+          const letter = keyCode.replace('Key', '');
+          let val = paramDef.vector ? paramDef.target.value[paramDef.vector] : paramDef.target.value;
+          html += `&nbsp;&nbsp;<b>${letter}</b>: ${paramDef.label} = ${val.toFixed(2)}<br>`;
+        }
+      }
+      html += `</div>`;
+    }
+    hud.innerHTML = html;
+  }
+
+  // ==========================================
+  // LOOP PRINCIPAL
+  // ==========================================
 
   simulation.reset();
 
   renderer.setAnimationLoop(() => {
-    params.time.value = clock.getElapsedTime();
-    if (!paused) simulation.stepSimulation();
-    orbit.update();
+    const delta = clock.getDelta();
+    params.time.value += delta;
+
+    // Lógica del Teclado Contínuo
+    let dir = (keysDown.has('ArrowUp') ? 1 : 0) - (keysDown.has('ArrowDown') ? 1 : 0);
+    
+    if (dir !== 0 && perfMap[activeChannel]) {
+      const activeKeys = perfMap[activeChannel].keys;
+      for (const [keyCode, paramDef] of Object.entries(activeKeys)) {
+        if (keysDown.has(keyCode)) {
+          const change = dir * paramDef.step * delta;
+          if (paramDef.vector) {
+            paramDef.target.value[paramDef.vector] += change;
+            paramDef.target.value[paramDef.vector] = Math.max(paramDef.min, Math.min(paramDef.max, paramDef.target.value[paramDef.vector]));
+          } else {
+            paramDef.target.value += change;
+            paramDef.target.value = Math.max(paramDef.min, Math.min(paramDef.max, paramDef.target.value));
+          }
+        }
+      }
+    }
+
+    updateHUD();
+
+    simulation.stepSimulation();
     renderer.render(scene, camera);
   });
 }
 
 main().catch((error) => {
   console.error(error);
-  const pre = document.createElement('pre');
-  pre.style.cssText = 'position:fixed;inset:16px;white-space:pre-wrap;color:#fff;z-index:50';
-  pre.textContent = String(error?.stack || error);
-  document.body.append(pre);
 });
